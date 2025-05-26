@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template, send_file, session, redirect
 from flask_sqlalchemy import SQLAlchemy
 from models import db, Study, Classification, User
 import hl7
@@ -8,6 +8,7 @@ import csv
 from io import StringIO
 from dateutil import parser
 from dotenv import load_dotenv
+from translations import TRANSLATIONS
 
 # Load environment variables
 load_dotenv()
@@ -18,6 +19,23 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'dev')
 
 db.init_app(app)
+
+def get_translation(key, lang='fi'):
+    """Get translation for a given key in the specified language."""
+    return TRANSLATIONS.get(lang, TRANSLATIONS['fi']).get(key, key)
+
+@app.context_processor
+def inject_translations():
+    """Inject translations into all templates."""
+    lang = session.get('lang', 'fi')
+    return dict(t=get_translation, lang=lang)
+
+@app.route('/set_language/<lang>')
+def set_language(lang):
+    """Set the language preference."""
+    if lang in TRANSLATIONS:
+        session['lang'] = lang
+    return redirect(request.referrer or '/')
 
 def parse_hl7_message(message):
     """Parse HL7 message and extract relevant information."""
@@ -313,6 +331,7 @@ def index():
     study_type = request.args.get('study_type', '')
     result_type = request.args.get('result_type', '')
     selected_username = request.args.get('username', '')
+    lang = session.get('lang', 'fi')
     
     # Base query
     query = Study.query
@@ -427,7 +446,8 @@ def index():
                          npv=npv,
                          f1_score=f1_score,
                          usernames=usernames,
-                         selected_username=selected_username)
+                         selected_username=selected_username,
+                         lang=lang)
 
 @app.route('/export')
 def export_csv():
