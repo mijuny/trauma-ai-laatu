@@ -43,7 +43,8 @@ TRANSLATIONS = {
         'showing': 'Näytetään',
         'to': '–',
         'of': '/',
-        'results': 'tulosta'
+        'results': 'tulosta',
+        'classified_cases': 'Luokitellut tapaukset'
     },
     'en': {
         'title': 'Trauma AI Quality Control',
@@ -89,6 +90,7 @@ TRANSLATIONS = {
         'showing': 'Showing',
         'to': 'to',
         'of': 'of',
-        'results': 'results'
+        'results': 'results',
+        'classified_cases': 'Classified Cases'
     }
 } 

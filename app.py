@@ -410,7 +410,7 @@ def index():
     # Base query for filtered studies (for display)
     query = Study.query
     
-    # Apply filters
+    # Apply time filter
     if time_filter != 'all':
         if time_filter == 'today':
             query = query.filter(Study.created_at >= datetime.now().date())
@@ -419,11 +419,9 @@ def index():
         elif time_filter == 'month':
             query = query.filter(Study.created_at >= datetime.now() - timedelta(days=30))
     
+    # Apply AC number filter
     if study_type:
         query = query.filter(Study.accession_number.ilike(f'%{study_type}%'))
-    
-    # Get filtered studies for display with pagination
-    studies = query.order_by(Study.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
     
     # Get all classifications for the selected username
     classifications_query = Classification.query
@@ -438,49 +436,50 @@ def index():
     
     # Filter studies based on result_type if specified
     if result_type and result_type.strip():  # Only apply filter if result_type is not empty
-        filtered_studies = []
-        for study in studies.items:
-            user_classification = user_classification_map.get(study.id)
-            
-            # If there's a user classification, use it
-            if user_classification:
-                if user_classification == result_type:
-                    filtered_studies.append(study)
-            # If no user classification, check AI classification
+        if result_type == 'CLASSIFIED':
+            # Get all study IDs that have any classification
+            classified_study_ids = {c.study_id for c in user_classifications}
+            if classified_study_ids:
+                query = query.filter(Study.id.in_(classified_study_ids))
             else:
-                # For TP filter, include studies with POSITIVE or DOUBT AI classification
-                if result_type == 'TP' and study.ai_classification in ['POSITIVE', 'DOUBT']:
-                    filtered_studies.append(study)
-                # For TN filter, include studies with NEGATIVE AI classification
-                elif result_type == 'TN' and study.ai_classification == 'NEGATIVE':
-                    filtered_studies.append(study)
-                # For DOUBT filter, include studies with DOUBT AI classification
-                elif result_type == 'DOUBT' and study.ai_classification == 'DOUBT':
-                    filtered_studies.append(study)
-                # For FP and FN, only include if there's a user classification
-                elif result_type in ['FP', 'FN']:
-                    continue
-        
-        # Create a custom pagination object for filtered results
-        total = len(filtered_studies)
-        start_idx = (page - 1) * per_page
-        end_idx = start_idx + per_page
-        filtered_items = filtered_studies[start_idx:end_idx]
-        
-        # Create a custom pagination object
-        class CustomPagination:
-            def __init__(self, items, page, per_page, total):
-                self.items = items
-                self.page = page
-                self.per_page = per_page
-                self.total = total
-                self.pages = (total + per_page - 1) // per_page
-                self.has_next = page < self.pages
-                self.has_prev = page > 1
-                self.prev_num = page - 1 if page > 1 else None
-                self.next_num = page + 1 if page < self.pages else None
-        
-        studies = CustomPagination(filtered_items, page, per_page, total)
+                query = query.filter(Study.id == None)  # No classified studies
+        else:
+            # For specific result types (TP, TN, FP, FN, DOUBT)
+            filtered_study_ids = set()
+            
+            # Get all studies that match the filter criteria
+            all_studies = query.all()
+            for study in all_studies:
+                user_classification = user_classification_map.get(study.id)
+                
+                # If there's a user classification, use it
+                if user_classification:
+                    if user_classification == result_type:
+                        filtered_study_ids.add(study.id)
+                # If no user classification, check AI classification
+                else:
+                    # For TP filter, include studies with POSITIVE or DOUBT AI classification
+                    if result_type == 'TP' and study.ai_classification in ['POSITIVE', 'DOUBT']:
+                        filtered_study_ids.add(study.id)
+                    # For TN filter, include studies with NEGATIVE AI classification
+                    elif result_type == 'TN' and study.ai_classification == 'NEGATIVE':
+                        filtered_study_ids.add(study.id)
+                    # For DOUBT filter, include studies with DOUBT AI classification
+                    elif result_type == 'DOUBT' and study.ai_classification == 'DOUBT':
+                        filtered_study_ids.add(study.id)
+                    # For FP and FN, only include if there's a user classification
+                    elif result_type in ['FP', 'FN']:
+                        continue
+            
+            # Apply the filtered study IDs to the query
+            if filtered_study_ids:
+                query = query.filter(Study.id.in_(filtered_study_ids))
+            else:
+                # If no studies match the filter, return empty result
+                query = query.filter(Study.id == None)
+    
+    # Get filtered studies for display with pagination
+    studies = query.order_by(Study.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
     
     # Get all studies for statistics (unfiltered)
     all_studies = Study.query.all()

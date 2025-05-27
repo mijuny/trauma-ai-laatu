@@ -130,6 +130,7 @@
                 <input type="text" id="studyType" placeholder="{{ t('study_type') }}" class="border rounded p-2" value="{{ study_type if study_type else '' }}">
                 <select id="resultType" class="border rounded p-2">
                     <option value="" {% if not result_type %}selected{% endif %}>{{ t('all_results') }}</option>
+                    <option value="CLASSIFIED" {% if result_type == 'CLASSIFIED' %}selected{% endif %}>{{ t('classified_cases') }}</option>
                     <option value="TP" {% if result_type == 'TP' %}selected{% endif %}>{{ t('true_positive') }}</option>
                     <option value="TN" {% if result_type == 'TN' %}selected{% endif %}>{{ t('true_negative') }}</option>
                     <option value="FP" {% if result_type == 'FP' %}selected{% endif %}>{{ t('false_positive') }}</option>
