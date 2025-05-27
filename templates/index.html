@@ -122,18 +122,19 @@
             <h2 class="text-xl font-semibold mb-4">{{ t('filters') }}</h2>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <select id="timeFilter" class="border rounded p-2">
-                    <option value="all">{{ t('all_time') }}</option>
-                    <option value="today">{{ t('today') }}</option>
-                    <option value="week">{{ t('last_week') }}</option>
-                    <option value="month">{{ t('last_month') }}</option>
+                    <option value="all" {% if time_filter == 'all' %}selected{% endif %}>{{ t('all_time') }}</option>
+                    <option value="today" {% if time_filter == 'today' %}selected{% endif %}>{{ t('today') }}</option>
+                    <option value="week" {% if time_filter == 'week' %}selected{% endif %}>{{ t('last_week') }}</option>
+                    <option value="month" {% if time_filter == 'month' %}selected{% endif %}>{{ t('last_month') }}</option>
                 </select>
-                <input type="text" id="studyType" placeholder="{{ t('study_type') }}" class="border rounded p-2">
+                <input type="text" id="studyType" placeholder="{{ t('study_type') }}" class="border rounded p-2" value="{{ study_type if study_type else '' }}">
                 <select id="resultType" class="border rounded p-2">
-                    <option value="">{{ t('all_results') }}</option>
+                    <option value="" {% if not result_type %}selected{% endif %}>{{ t('all_results') }}</option>
                     <option value="TP" {% if result_type == 'TP' %}selected{% endif %}>{{ t('true_positive') }}</option>
                     <option value="TN" {% if result_type == 'TN' %}selected{% endif %}>{{ t('true_negative') }}</option>
                     <option value="FP" {% if result_type == 'FP' %}selected{% endif %}>{{ t('false_positive') }}</option>
                     <option value="FN" {% if result_type == 'FN' %}selected{% endif %}>{{ t('false_negative') }}</option>
+                    <option value="DOUBT" {% if result_type == 'DOUBT' %}selected{% endif %}>{{ t('doubt') }}</option>
                 </select>
                 <div class="flex items-center space-x-2">
                     <select id="username" class="border rounded p-2 flex-grow">
@@ -167,7 +168,7 @@
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    {% for study in studies %}
+                    {% for study in studies.items %}
                     <tr>
                         <td class="px-6 py-4 whitespace-nowrap">{{ study.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">{{ study.accession_number }}</td>
@@ -205,6 +206,58 @@
                     {% endfor %}
                 </tbody>
             </table>
+            
+            <!-- Pagination -->
+            {% if studies.pages > 1 %}
+            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <div class="flex-1 flex justify-between sm:hidden">
+                    {% if studies.has_prev %}
+                    <a href="?page={{ studies.prev_num }}{% if time_filter != 'all' %}&time_filter={{ time_filter }}{% endif %}{% if study_type %}&study_type={{ study_type }}{% endif %}{% if result_type %}&result_type={{ result_type }}{% endif %}{% if selected_username %}&username={{ selected_username }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        {{ t('previous') }}
+                    </a>
+                    {% endif %}
+                    {% if studies.has_next %}
+                    <a href="?page={{ studies.next_num }}{% if time_filter != 'all' %}&time_filter={{ time_filter }}{% endif %}{% if study_type %}&study_type={{ study_type }}{% endif %}{% if result_type %}&result_type={{ result_type }}{% endif %}{% if selected_username %}&username={{ selected_username }}{% endif %}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        {{ t('next') }}
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            {{ t('showing') }} <span class="font-medium">{{ (page - 1) * 100 + 1 }}</span> {{ t('to') }} <span class="font-medium">{{ min(page * 100, studies.total) }}</span> {{ t('of') }} <span class="font-medium">{{ studies.total }}</span> {{ t('results') }}
+                        </p>
+                    </div>
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                            {% if studies.has_prev %}
+                            <a href="?page={{ studies.prev_num }}{% if time_filter != 'all' %}&time_filter={{ time_filter }}{% endif %}{% if study_type %}&study_type={{ study_type }}{% endif %}{% if result_type %}&result_type={{ result_type }}{% endif %}{% if selected_username %}&username={{ selected_username }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                {{ t('previous') }}
+                            </a>
+                            {% endif %}
+                            
+                            {% for p in range(1, studies.pages + 1) %}
+                                {% if p == page %}
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                                    {{ p }}
+                                </span>
+                                {% else %}
+                                <a href="?page={{ p }}{% if time_filter != 'all' %}&time_filter={{ time_filter }}{% endif %}{% if study_type %}&study_type={{ study_type }}{% endif %}{% if result_type %}&result_type={{ result_type }}{% endif %}{% if selected_username %}&username={{ selected_username }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    {{ p }}
+                                </a>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if studies.has_next %}
+                            <a href="?page={{ studies.next_num }}{% if time_filter != 'all' %}&time_filter={{ time_filter }}{% endif %}{% if study_type %}&study_type={{ study_type }}{% endif %}{% if result_type %}&result_type={{ result_type }}{% endif %}{% if selected_username %}&username={{ selected_username }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                {{ t('next') }}
+                            </a>
+                            {% endif %}
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 
@@ -360,11 +413,11 @@
         });
 
         function resetFilters() {
+            const currentUsername = document.getElementById('username').value;
             document.getElementById('timeFilter').value = 'all';
             document.getElementById('studyType').value = '';
             document.getElementById('resultType').value = '';
-            document.getElementById('username').value = '';
-            window.location.href = '/reset_filters';
+            window.location.href = '/reset_filters?username=' + encodeURIComponent(currentUsername);
         }
     </script>
 </body>

@@ -8,7 +8,7 @@ TRANSLATIONS = {
         'today': 'Tänään',
         'last_week': 'Viime viikko',
         'last_month': 'Viime kuukausi',
-        'study_type': 'Tutkimustyyppi',
+        'study_type': 'Hae AC numerolla',
         'all_results': 'Kaikki tulokset',
         'true_positive': 'Oikea positiivinen',
         'true_negative': 'Oikea negatiivinen',
@@ -37,7 +37,13 @@ TRANSLATIONS = {
         'positive': 'Positiivinen',
         'negative': 'Negatiivinen',
         'doubt': 'Epävarma',
-        'reset_filters': 'Tyhjennä suodattimet'
+        'reset_filters': 'Tyhjennä suodattimet',
+        'previous': 'Edellinen',
+        'next': 'Seuraava',
+        'showing': 'Näytetään',
+        'to': '–',
+        'of': '/',
+        'results': 'tulosta'
     },
     'en': {
         'title': 'Trauma AI Quality Control',
@@ -48,7 +54,7 @@ TRANSLATIONS = {
         'today': 'Today',
         'last_week': 'Last Week',
         'last_month': 'Last Month',
-        'study_type': 'Study Type',
+        'study_type': 'Search by AC number',
         'all_results': 'All Results',
         'true_positive': 'True Positive',
         'true_negative': 'True Negative',
@@ -77,6 +83,12 @@ TRANSLATIONS = {
         'positive': 'Positive',
         'negative': 'Negative',
         'doubt': 'Doubt',
-        'reset_filters': 'Reset Filters'
+        'reset_filters': 'Reset Filters',
+        'previous': 'Previous',
+        'next': 'Next',
+        'showing': 'Showing',
+        'to': 'to',
+        'of': 'of',
+        'results': 'results'
     }
 } 

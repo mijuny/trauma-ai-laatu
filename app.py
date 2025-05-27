@@ -28,7 +28,7 @@ def get_translation(key, lang='fi'):
 def inject_translations():
     """Inject translations into all templates."""
     lang = session.get('lang', 'fi')
-    return dict(t=get_translation, lang=lang)
+    return dict(t=get_translation, lang=lang, min=min, max=max)
 
 @app.route('/set_language/<lang>')
 def set_language(lang):
@@ -403,6 +403,8 @@ def index():
     study_type = request.args.get('study_type', '')
     result_type = request.args.get('result_type', '')  # This will be empty string when "Kaikki tulokset" is selected
     selected_username = request.args.get('username', '')
+    page = request.args.get('page', 1, type=int)
+    per_page = 100
     lang = session.get('lang', 'fi')
     
     # Base query for filtered studies (for display)
@@ -418,10 +420,10 @@ def index():
             query = query.filter(Study.created_at >= datetime.now() - timedelta(days=30))
     
     if study_type:
-        query = query.filter(Study.study_description.ilike(f'%{study_type}%'))
+        query = query.filter(Study.accession_number.ilike(f'%{study_type}%'))
     
-    # Get filtered studies for display
-    studies = query.order_by(Study.created_at.desc()).all()
+    # Get filtered studies for display with pagination
+    studies = query.order_by(Study.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
     
     # Get all classifications for the selected username
     classifications_query = Classification.query
@@ -437,7 +439,7 @@ def index():
     # Filter studies based on result_type if specified
     if result_type and result_type.strip():  # Only apply filter if result_type is not empty
         filtered_studies = []
-        for study in studies:
+        for study in studies.items:
             user_classification = user_classification_map.get(study.id)
             
             # If there's a user classification, use it
@@ -452,10 +454,33 @@ def index():
                 # For TN filter, include studies with NEGATIVE AI classification
                 elif result_type == 'TN' and study.ai_classification == 'NEGATIVE':
                     filtered_studies.append(study)
+                # For DOUBT filter, include studies with DOUBT AI classification
+                elif result_type == 'DOUBT' and study.ai_classification == 'DOUBT':
+                    filtered_studies.append(study)
                 # For FP and FN, only include if there's a user classification
                 elif result_type in ['FP', 'FN']:
                     continue
-        studies = filtered_studies
+        
+        # Create a custom pagination object for filtered results
+        total = len(filtered_studies)
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        filtered_items = filtered_studies[start_idx:end_idx]
+        
+        # Create a custom pagination object
+        class CustomPagination:
+            def __init__(self, items, page, per_page, total):
+                self.items = items
+                self.page = page
+                self.per_page = per_page
+                self.total = total
+                self.pages = (total + per_page - 1) // per_page
+                self.has_next = page < self.pages
+                self.has_prev = page > 1
+                self.prev_num = page - 1 if page > 1 else None
+                self.next_num = page + 1 if page < self.pages else None
+        
+        studies = CustomPagination(filtered_items, page, per_page, total)
     
     # Get all studies for statistics (unfiltered)
     all_studies = Study.query.all()
@@ -518,17 +543,6 @@ def index():
     # F1 Score
     f1_score = (2 * tp_count / (2 * tp_count + fp_count + fn_count) * 100) if (2 * tp_count + fp_count + fn_count) > 0 else 0
     
-    print(f"\nStatistics:")
-    print(f"Total Studies: {total_studies}")
-    print(f"Total User Classifications: {total_classifications}")
-    print(f"TP: {tp_count}, TN: {tn_count}, FP: {fp_count}, FN: {fn_count}")
-    print(f"Sensitivity: {sensitivity:.1f}%")
-    print(f"Specificity: {specificity:.1f}%")
-    print(f"Accuracy: {accuracy:.1f}%")
-    print(f"PPV: {ppv:.1f}%")
-    print(f"NPV: {npv:.1f}%")
-    print(f"F1 Score: {f1_score:.1f}%")
-    
     return render_template('index.html',
                          studies=studies,
                          total_studies=total_studies,
@@ -545,6 +559,10 @@ def index():
                          f1_score=f1_score,
                          usernames=usernames,
                          selected_username=selected_username,
+                         time_filter=time_filter,
+                         study_type=study_type,
+                         result_type=result_type,
+                         page=page,
                          lang=lang)
 
 @app.route('/export')
@@ -599,6 +617,9 @@ def export_csv():
 @app.route('/reset_filters')
 def reset_filters():
     """Reset all filters and redirect to the main page."""
+    username = request.args.get('username', '')
+    if username:
+        return redirect(f'/?username={username}')
     return redirect('/')
 
 if __name__ == '__main__':
