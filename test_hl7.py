@@ -32,20 +32,38 @@ def get_next_accession_number():
         return f"VAR{random.randint(1000000, 9999999)}"
 
 def generate_hl7_message(accession_number):
-    """Generate a Gleamer-like HL7 message."""
-    # Randomly choose POSITIVE or NEGATIVE
-    result = random.choice(['POSITIVE', 'NEGATIVE'])
+    """Generate a BoneView-like HL7 message."""
+    # Generate result with 10% chance of DOUBT, 45% each for POSITIVE and NEGATIVE
+    rand = random.random()
+    if rand < 0.1:  # 10% chance for DOUBT
+        result = 'DOUBT'
+    elif rand < 0.55:  # 45% chance for POSITIVE
+        result = 'POSITIVE'
+    else:  # 45% chance for NEGATIVE
+        result = 'NEGATIVE'
     
-    # Current timestamp
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    # Current timestamp with milliseconds
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S.%f')[:-3]
+    
+    # Generate random patient ID and study UID
+    patient_id = str(random.randint(10000000, 99999999))
+    study_uid = f"1.2.392.200036.9125.2.691202139174.{accession_number}"
+    
+    # Generate random DOB (between 1950 and 2000)
+    year = random.randint(1950, 2000)
+    month = random.randint(1, 12)
+    day = random.randint(1, 28)
+    dob = f"{year}{month:02d}{day:02d}"
+    
+    # Randomly choose gender
+    gender = random.choice(['M', 'F'])
     
     # Generate HL7 message
-    message = f"""MSH|^~\\&|GLEAMER|HOSPITAL|RAD|HOSPITAL|{timestamp}||ORU^R01|{accession_number}|P|2.5
-PID|1||{accession_number}|||19700101|M
-PV1|1|O|RAD
-ORC|RE|{accession_number}|||CM
-OBR|1|{accession_number}||CT CHEST||{timestamp}|||||||||||||||CM
-OBX|1|ST|AI_RESULT||{result}||||||F
+    message = f"""MSH|^~\\&|GLEAMER||CSILXD|LUXMED|{timestamp}||ORU^R01|{accession_number}|P|2.5||||||UNICODE UTF-8|||
+PID||{patient_id}|||TEST^PATIENT||{dob}|{gender}||||||
+OBR|1|{accession_number}||Boneview analysis||||
+OBX|1|ST|result-code^^GLEAMER||{result}||||||R||||||||{accession_number}
+ZDS|{study_uid}^Gleamer^Application^DICOM
 """
     return message
 

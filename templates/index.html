@@ -177,6 +177,8 @@
                                 {{ t('positive') }}
                             {% elif study.ai_classification in ['TN', 'FN'] %}
                                 {{ t('negative') }}
+                            {% elif study.ai_classification == 'DOUBT' %}
+                                {{ t('doubt') }}
                             {% else %}
                                 {{ study.ai_classification }}
                             {% endif %}

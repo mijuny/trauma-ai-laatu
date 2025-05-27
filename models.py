@@ -30,6 +30,12 @@ class Study(db.Model):
     ai_classification = db.Column(db.String(10), nullable=False)  # TP, TN, FP, FN
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Additional fields from BoneView HL7 message
+    patient_id = db.Column(db.String(50))
+    patient_dob = db.Column(db.String(10))
+    patient_gender = db.Column(db.String(1))
+    study_uid = db.Column(db.String(200))
+    
     # Relationship with classifications
     classifications = db.relationship('Classification', backref='study', lazy=True)
 

@@ -36,6 +36,7 @@ TRANSLATIONS = {
         'select_classification': 'Valitse luokittelu',
         'positive': 'Positiivinen',
         'negative': 'Negatiivinen',
+        'doubt': 'Epävarma',
         'reset_filters': 'Tyhjennä suodattimet'
     },
     'en': {
@@ -75,6 +76,7 @@ TRANSLATIONS = {
         'select_classification': 'Select Classification',
         'positive': 'Positive',
         'negative': 'Negative',
+        'doubt': 'Doubt',
         'reset_filters': 'Reset Filters'
     }
 } 
