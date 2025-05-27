@@ -50,37 +50,6 @@
             </div>
         </div>
 
-        <!-- Filters -->
-        <div class="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 class="text-xl font-semibold mb-4">{{ t('filters') }}</h2>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <select id="timeFilter" class="border rounded p-2">
-                    <option value="all">{{ t('all_time') }}</option>
-                    <option value="today">{{ t('today') }}</option>
-                    <option value="week">{{ t('last_week') }}</option>
-                    <option value="month">{{ t('last_month') }}</option>
-                </select>
-                <input type="text" id="studyType" placeholder="{{ t('study_type') }}" class="border rounded p-2">
-                <select id="resultType" class="border rounded p-2">
-                    <option value="">{{ t('all_results') }}</option>
-                    <option value="TP">{{ t('true_positive') }}</option>
-                    <option value="TN">{{ t('true_negative') }}</option>
-                    <option value="FP">{{ t('false_positive') }}</option>
-                    <option value="FN">{{ t('false_negative') }}</option>
-                </select>
-                <div class="flex items-center space-x-2">
-                    <select id="username" class="border rounded p-2 flex-grow">
-                        <option value="">{{ t('select_username') }}</option>
-                        {% for username in usernames %}
-                        <option value="{{ username }}" {% if username == selected_username %}selected{% endif %}>{{ username }}</option>
-                        {% endfor %}
-                    </select>
-                    <input type="text" id="newUsername" placeholder="{{ t('new_username') }}" class="border rounded p-2 flex-grow hidden">
-                    <button onclick="toggleNewUsername()" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">+</button>
-                </div>
-            </div>
-        </div>
-
         <!-- Statistics -->
         <div class="bg-white rounded-lg shadow p-6 mb-8">
             <h2 class="text-xl font-semibold mb-4">{{ t('statistics') }}</h2>
@@ -145,6 +114,42 @@
                         <p class="text-xl">{{ "%.1f"|format(f1_score) }}%</p>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <h2 class="text-xl font-semibold mb-4">{{ t('filters') }}</h2>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <select id="timeFilter" class="border rounded p-2">
+                    <option value="all">{{ t('all_time') }}</option>
+                    <option value="today">{{ t('today') }}</option>
+                    <option value="week">{{ t('last_week') }}</option>
+                    <option value="month">{{ t('last_month') }}</option>
+                </select>
+                <input type="text" id="studyType" placeholder="{{ t('study_type') }}" class="border rounded p-2">
+                <select id="resultType" class="border rounded p-2">
+                    <option value="">{{ t('all_results') }}</option>
+                    <option value="TP" {% if result_type == 'TP' %}selected{% endif %}>{{ t('true_positive') }}</option>
+                    <option value="TN" {% if result_type == 'TN' %}selected{% endif %}>{{ t('true_negative') }}</option>
+                    <option value="FP" {% if result_type == 'FP' %}selected{% endif %}>{{ t('false_positive') }}</option>
+                    <option value="FN" {% if result_type == 'FN' %}selected{% endif %}>{{ t('false_negative') }}</option>
+                </select>
+                <div class="flex items-center space-x-2">
+                    <select id="username" class="border rounded p-2 flex-grow">
+                        <option value="">{{ t('select_username') }}</option>
+                        {% for username in usernames %}
+                        <option value="{{ username }}" {% if username == selected_username %}selected{% endif %}>{{ username }}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="text" id="newUsername" placeholder="{{ t('new_username') }}" class="border rounded p-2 flex-grow hidden">
+                    <button onclick="toggleNewUsername()" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">+</button>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button onclick="resetFilters()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                    {{ t('reset_filters') }}
+                </button>
             </div>
         </div>
 
@@ -337,12 +342,27 @@
             const username = getUsername();
 
             const params = new URLSearchParams();
-            if (timeFilter) params.append('time_filter', timeFilter);
+            if (timeFilter && timeFilter !== 'all') params.append('time_filter', timeFilter);
             if (studyType) params.append('study_type', studyType);
-            if (resultType) params.append('result_type', resultType);
+            // Always include result_type parameter, even if empty
+            params.append('result_type', resultType);
             if (username) params.append('username', username);
 
             window.location.href = '/?' + params.toString();
+        }
+
+        // Add event listener for result type change
+        document.getElementById('resultType').addEventListener('change', function() {
+            // Force immediate filter application when result type changes
+            applyFilters();
+        });
+
+        function resetFilters() {
+            document.getElementById('timeFilter').value = 'all';
+            document.getElementById('studyType').value = '';
+            document.getElementById('resultType').value = '';
+            document.getElementById('username').value = '';
+            window.location.href = '/reset_filters';
         }
     </script>
 </body>

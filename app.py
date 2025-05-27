@@ -329,11 +329,11 @@ def index():
     # Get filter parameters
     time_filter = request.args.get('time_filter', 'all')
     study_type = request.args.get('study_type', '')
-    result_type = request.args.get('result_type', '')
+    result_type = request.args.get('result_type', '')  # This will be empty string when "Kaikki tulokset" is selected
     selected_username = request.args.get('username', '')
     lang = session.get('lang', 'fi')
     
-    # Base query
+    # Base query for filtered studies (for display)
     query = Study.query
     
     # Apply filters
@@ -348,10 +348,7 @@ def index():
     if study_type:
         query = query.filter(Study.study_description.ilike(f'%{study_type}%'))
     
-    if result_type:
-        query = query.filter(Study.ai_classification == result_type)
-    
-    # Get studies
+    # Get filtered studies for display
     studies = query.order_by(Study.created_at.desc()).all()
     
     # Get all classifications for the selected username
@@ -365,13 +362,42 @@ def index():
     # Create a mapping of study_id to user classification
     user_classification_map = {c.study_id: c.classification for c in user_classifications}
     
+    # Filter studies based on result_type if specified
+    if result_type and result_type.strip():  # Only apply filter if result_type is not empty
+        filtered_studies = []
+        for study in studies:
+            user_classification = user_classification_map.get(study.id)
+            
+            # If there's a user classification, use it
+            if user_classification:
+                if user_classification == result_type:
+                    filtered_studies.append(study)
+            # If no user classification, check AI classification
+            else:
+                # For TP filter, include studies with POSITIVE AI classification
+                if result_type == 'TP' and study.ai_classification == 'POSITIVE':
+                    filtered_studies.append(study)
+                # For TN filter, include studies with NEGATIVE AI classification
+                elif result_type == 'TN' and study.ai_classification == 'NEGATIVE':
+                    filtered_studies.append(study)
+                # For FP and FN, only include if there's a user classification
+                elif result_type in ['FP', 'FN']:
+                    continue
+        studies = filtered_studies
+    # If result_type is empty (Kaikki tulokset), show all studies without filtering
+    
+    # Get all studies for statistics (unfiltered)
+    all_studies = Study.query.all()
+    all_classifications = Classification.query.all()
+    all_classification_map = {c.study_id: c.classification for c in all_classifications}
+    
     # Get unique usernames
     usernames = db.session.query(User.username).distinct().all()
     usernames = [username[0] for username in usernames]
     
-    # Calculate statistics
-    total_studies = len(studies)
-    total_classifications = len(user_classifications)
+    # Calculate statistics from all studies
+    total_studies = len(all_studies)
+    total_classifications = len(all_classifications)
     
     # Count classifications by type
     tp_count = 0
@@ -379,8 +405,8 @@ def index():
     fp_count = 0
     fn_count = 0
     
-    for study in studies:
-        user_classification = user_classification_map.get(study.id)
+    for study in all_studies:
+        user_classification = all_classification_map.get(study.id)
         
         if user_classification:
             # User has provided a classification
@@ -482,6 +508,11 @@ def export_csv():
         as_attachment=True,
         download_name=f'radiology_studies_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     )
+
+@app.route('/reset_filters')
+def reset_filters():
+    """Reset all filters and redirect to the main page."""
+    return redirect('/')
 
 if __name__ == '__main__':
     import threading

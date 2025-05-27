@@ -35,7 +35,8 @@ TRANSLATIONS = {
         'actions': 'Toiminnot',
         'select_classification': 'Valitse luokittelu',
         'positive': 'Positiivinen',
-        'negative': 'Negatiivinen'
+        'negative': 'Negatiivinen',
+        'reset_filters': 'Tyhjennä suodattimet'
     },
     'en': {
         'title': 'Trauma AI Quality Control',
@@ -73,6 +74,7 @@ TRANSLATIONS = {
         'actions': 'Actions',
         'select_classification': 'Select Classification',
         'positive': 'Positive',
-        'negative': 'Negative'
+        'negative': 'Negative',
+        'reset_filters': 'Reset Filters'
     }
 } 
