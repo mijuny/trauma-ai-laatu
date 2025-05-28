@@ -253,8 +253,8 @@
                             {{ study.created_at.strftime('%Y-%m-%d %H:%M') }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            <a href="http://wxturkupacs1.tyks.fi/masterview/mv.jsp?user_name=&server_name=PACS&accession_number={{ study.accession_number }}&close_window=true" 
-                               target="_blank" 
+                            <a href="javascript:void(0)" 
+                               onclick="openPACSViewer('{{ study.accession_number }}')"
                                class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
                                 {{ study.accession_number }}
                             </a>
@@ -351,6 +351,17 @@
     </div>
 
     <script>
+        // Add this function at the beginning of the script section
+        function openPACSViewer(accessionNumber) {
+            const url = `http://wxturkupacs1.tyks.fi/masterview/mv.jsp?user_name=&server_name=PACS&accession_number=${accessionNumber}`;
+            const pacsWindow = window.open(url, 'PACSViewer', 'width=1,height=1,left=0,top=0');
+            if (pacsWindow) {
+                // Minimize the window immediately
+                pacsWindow.blur();
+                window.focus();
+            }
+        }
+
         // Auto-refresh functionality
         let refreshInterval = 30000; // 30 seconds
         let refreshTimer = null;
