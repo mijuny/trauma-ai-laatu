@@ -31,7 +31,12 @@ def get_finnish_time():
 def convert_to_finnish_time(dt):
     """Convert a datetime object to Finnish timezone."""
     if dt.tzinfo is None:
+        # If no timezone info, assume it's UTC
         dt = pytz.UTC.localize(dt)
+    elif dt.tzinfo == FINNISH_TZ:
+        # If already in Finnish time, return as is
+        return dt
+    # Convert to Finnish time
     return dt.astimezone(FINNISH_TZ)
 
 def get_translation(key, lang='fi'):
@@ -84,7 +89,7 @@ def parse_hl7_message(message):
             msh_segment = h.segment('MSH')
             print("\nMSH segment:", msh_segment)
             
-            # Parse timestamp from MSH segment and add 1 hour for Finnish time
+            # Parse timestamp from MSH segment
             study_time = None
             if msh_segment and len(msh_segment) > 7:
                 try:
@@ -106,12 +111,12 @@ def parse_hl7_message(message):
                     
                     # Create datetime object in UTC (assuming HL7 timestamp is in UTC)
                     study_time = datetime(year, month, day, hour, minute, second)
-                    # Store as UTC time without timezone conversion
-                    study_time = study_time.replace(tzinfo=pytz.UTC)
-                    print(f"Study time (UTC): {study_time}")
+                    # Convert to Finnish timezone
+                    study_time = convert_to_finnish_time(study_time)
+                    print(f"Study time (Finnish): {study_time}")
                 except (IndexError, ValueError) as e:
                     print(f"Error parsing timestamp from MSH segment: {e}")
-                    study_time = datetime.now(pytz.UTC)  # Fallback to current UTC time
+                    study_time = get_finnish_time()  # Fallback to current Finnish time
             
             # Get PID segment
             pid_segment = h.segment('PID')
@@ -254,7 +259,7 @@ def receive_hl7():
                         'raw_message': message
                     }), 400
                 
-                # Parse timestamp from MSH segment and add 1 hour for Finnish time
+                # Parse timestamp from MSH segment
                 study_time = None
                 if len(msh_segment) > 7:
                     try:
@@ -276,12 +281,12 @@ def receive_hl7():
                         
                         # Create datetime object in UTC (assuming HL7 timestamp is in UTC)
                         study_time = datetime(year, month, day, hour, minute, second)
-                        # Store as UTC time without timezone conversion
-                        study_time = study_time.replace(tzinfo=pytz.UTC)
-                        print(f"Study time (UTC): {study_time}")
+                        # Convert to Finnish timezone
+                        study_time = convert_to_finnish_time(study_time)
+                        print(f"Study time (Finnish): {study_time}")
                     except (IndexError, ValueError) as e:
                         print(f"Error parsing timestamp from MSH segment: {e}")
-                        study_time = datetime.now(pytz.UTC)  # Fallback to current UTC time
+                        study_time = get_finnish_time()  # Fallback to current Finnish time
                 
                 # Get PID segment
                 pid_segment = h.segment('PID')

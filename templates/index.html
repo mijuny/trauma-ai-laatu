@@ -250,7 +250,7 @@
                     {% for study in studies.items %}
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {{ convert_to_finnish_time(study.created_at).strftime('%Y-%m-%d %H:%M') }}
+                            {{ study.created_at.strftime('%Y-%m-%d %H:%M') }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                             <a href="http://wxturkupacs1.tyks.fi/masterview/mv.jsp?user_name=&server_name=PACS&accession_number={{ study.accession_number }}&close_window=true" 
