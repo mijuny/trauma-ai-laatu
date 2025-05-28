@@ -209,6 +209,7 @@
                 <select id="resultType" class="border rounded p-2">
                     <option value="" {% if not result_type %}selected{% endif %}>{{ t('all_results') }}</option>
                     <option value="CLASSIFIED" {% if result_type == 'CLASSIFIED' %}selected{% endif %}>{{ t('classified_cases') }}</option>
+                    <option value="MY_CLASSIFIED" {% if result_type == 'MY_CLASSIFIED' %}selected{% endif %}>{{ t('my_classified_cases') }}</option>
                     <option value="TP" {% if result_type == 'TP' %}selected{% endif %}>{{ t('true_positive') }}</option>
                     <option value="TN" {% if result_type == 'TN' %}selected{% endif %}>{{ t('true_negative') }}</option>
                     <option value="FP" {% if result_type == 'FP' %}selected{% endif %}>{{ t('false_positive') }}</option>

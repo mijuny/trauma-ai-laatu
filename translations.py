@@ -43,7 +43,8 @@ TRANSLATIONS = {
         'to': '–',
         'of': '/',
         'results': 'tulosta',
-        'classified_cases': 'Luokitellut tapaukset'
+        'classified_cases': 'Luokitellut tapaukset',
+        'my_classified_cases': 'Omat luokitellut tapaukset'
     },
     'en': {
         'title': 'Pekka 2000 - AI Quality Control',
@@ -89,6 +90,7 @@ TRANSLATIONS = {
         'to': 'to',
         'of': 'of',
         'results': 'results',
-        'classified_cases': 'Classified Cases'
+        'classified_cases': 'Classified Cases',
+        'my_classified_cases': 'My Classified Cases'
     }
 } 

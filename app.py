@@ -583,6 +583,16 @@ def index():
                 query = query.filter(Study.id.in_(classified_study_ids))
             else:
                 query = query.filter(Study.id == None)  # No classified studies
+        elif result_type == 'MY_CLASSIFIED':
+            # Get study IDs that have been classified by the selected user
+            if selected_username:
+                my_classified_study_ids = {c.study_id for c in user_classifications}
+                if my_classified_study_ids:
+                    query = query.filter(Study.id.in_(my_classified_study_ids))
+                else:
+                    query = query.filter(Study.id == None)  # No classified studies
+            else:
+                query = query.filter(Study.id == None)  # No username selected
         else:
             # For specific result types (TP, TN, FP, FN, DOUBT)
             filtered_study_ids = set()
