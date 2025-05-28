@@ -9,6 +9,7 @@ from io import StringIO
 from dateutil import parser
 from dotenv import load_dotenv
 from translations import TRANSLATIONS
+import pytz
 
 # Load environment variables
 load_dotenv()
@@ -18,7 +19,20 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'dev')
 
+# Set Finnish timezone
+FINNISH_TZ = pytz.timezone('Europe/Helsinki')
+
 db.init_app(app)
+
+def get_finnish_time():
+    """Get current time in Finnish timezone."""
+    return datetime.now(FINNISH_TZ)
+
+def convert_to_finnish_time(dt):
+    """Convert a datetime object to Finnish timezone."""
+    if dt.tzinfo is None:
+        dt = pytz.UTC.localize(dt)
+    return dt.astimezone(FINNISH_TZ)
 
 def get_translation(key, lang='fi'):
     """Get translation for a given key in the specified language."""
@@ -28,7 +42,7 @@ def get_translation(key, lang='fi'):
 def inject_translations():
     """Inject translations into all templates."""
     lang = session.get('lang', 'fi')
-    return dict(t=get_translation, lang=lang, min=min, max=max)
+    return dict(t=get_translation, lang=lang, min=min, max=max, convert_to_finnish_time=convert_to_finnish_time)
 
 @app.route('/set_language/<lang>')
 def set_language(lang):
@@ -55,14 +69,49 @@ def parse_hl7_message(message):
         
         # Print all segments for debugging
         print("\nAvailable segments:")
-        for segment in h.segments():
-            print(f"Segment: {segment}")
+        for segment_id in ['MSH', 'PID', 'OBR', 'OBX', 'ZDS']:
+            segment = h.segment(segment_id)
+            if segment:
+                print(f"Segment {segment_id}: {segment}")
+                # Print detailed segment structure
+                print(f"Segment {segment_id} structure:")
+                for i, field in enumerate(segment):
+                    print(f"  Field {i}: {field}")
         
         # Extract fields from the message
         try:
             # Get MSH segment
             msh_segment = h.segment('MSH')
             print("\nMSH segment:", msh_segment)
+            
+            # Parse timestamp from MSH segment and add 1 hour for Finnish time
+            study_time = None
+            if msh_segment and len(msh_segment) > 7:
+                try:
+                    # Get timestamp from MSH-7 (index 7)
+                    timestamp_str = str(msh_segment[7][0])
+                    print(f"Raw timestamp from MSH: {timestamp_str}")
+                    
+                    # Handle timestamp with milliseconds (YYYYMMDDHHMMSS.SSS)
+                    if '.' in timestamp_str:
+                        timestamp_str = timestamp_str.split('.')[0]  # Remove milliseconds
+                    
+                    # Parse the timestamp (format: YYYYMMDDHHMMSS)
+                    year = int(timestamp_str[0:4])
+                    month = int(timestamp_str[4:6])
+                    day = int(timestamp_str[6:8])
+                    hour = int(timestamp_str[8:10])
+                    minute = int(timestamp_str[10:12])
+                    second = int(timestamp_str[12:14])
+                    
+                    # Create datetime object in UTC (assuming HL7 timestamp is in UTC)
+                    study_time = datetime(year, month, day, hour, minute, second)
+                    # Store as UTC time without timezone conversion
+                    study_time = study_time.replace(tzinfo=pytz.UTC)
+                    print(f"Study time (UTC): {study_time}")
+                except (IndexError, ValueError) as e:
+                    print(f"Error parsing timestamp from MSH segment: {e}")
+                    study_time = datetime.now(pytz.UTC)  # Fallback to current UTC time
             
             # Get PID segment
             pid_segment = h.segment('PID')
@@ -79,17 +128,48 @@ def parse_hl7_message(message):
             # Get ZDS segment if available
             zds_segment = h.segment('ZDS')
             print("ZDS segment:", zds_segment)
+            if zds_segment:
+                print("ZDS segment fields:")
+                for i, field in enumerate(zds_segment):
+                    print(f"  ZDS[{i}]: {field}")
             
             # Extract fields with proper error handling
-            accession_number = str(obr_segment[2][0]) if len(obr_segment) > 2 else None
+            # Try different possible positions for accession number
+            accession_number = None
+            if len(obr_segment) > 3 and obr_segment[3][0]:  # Try OBR-3 first
+                accession_number = str(obr_segment[3][0])
+            elif len(obr_segment) > 2 and obr_segment[2][0]:  # Then try OBR-2
+                accession_number = str(obr_segment[2][0])
+            
+            # Clean up study description (remove ^ prefix if present)
             study_description = str(obr_segment[4][0]) if len(obr_segment) > 4 else None
+            if study_description and study_description.startswith('^'):
+                study_description = study_description[1:]
+            
+            # Get result from OBX
             result = str(obx_segment[5][0]).upper() if len(obx_segment) > 5 else None
             
             # Extract additional fields
             patient_id = str(pid_segment[2][0]) if len(pid_segment) > 2 else None
-            patient_dob = str(pid_segment[6][0]) if len(pid_segment) > 6 else None
-            patient_gender = str(pid_segment[7][0]) if len(pid_segment) > 7 else None
-            study_uid = str(zds_segment[0][0]) if zds_segment and len(zds_segment) > 0 else None
+            patient_dob = str(pid_segment[7][0]) if len(pid_segment) > 7 else None
+            patient_gender = str(pid_segment[8][0]) if len(pid_segment) > 8 else None
+            
+            # Get study UID from ZDS segment - first component before the first ^
+            study_uid = None
+            if zds_segment and len(zds_segment) > 1:  # Changed from > 0 to > 1
+                try:
+                    # Print raw ZDS value for debugging
+                    print(f"\nRaw ZDS value: {zds_segment[1]}")  # Changed from [0] to [1]
+                    zds_value = str(zds_segment[1][0])  # Changed from [0] to [1]
+                    print(f"ZDS value after str conversion: {zds_value}")
+                    if '^' in zds_value:
+                        study_uid = zds_value.split('^')[0]
+                        print(f"Study UID after splitting: {study_uid}")
+                    else:
+                        study_uid = zds_value
+                except (IndexError, AttributeError) as e:
+                    print(f"Error extracting study UID from ZDS segment: {e}")
+                    study_uid = None
             
             # Validate patient gender
             if not patient_gender or patient_gender not in ['M', 'F']:
@@ -103,6 +183,7 @@ def parse_hl7_message(message):
             print(f"Patient DOB: {patient_dob}")
             print(f"Patient Gender: {patient_gender}")
             print(f"Study UID: {study_uid}")
+            print(f"Study Time: {study_time}")
             
             if not all([accession_number, study_description, result]):
                 missing_fields = []
@@ -117,6 +198,9 @@ def parse_hl7_message(message):
                 print(f"Warning: Unknown result value '{result}', defaulting to NEGATIVE")
                 result = 'NEGATIVE'
             
+            # Convert study_time to string for JSON serialization
+            study_time_str = study_time.isoformat() if study_time else None
+            
             return {
                 'accession_number': accession_number,
                 'study_description': study_description,
@@ -125,7 +209,8 @@ def parse_hl7_message(message):
                 'patient_id': patient_id,
                 'patient_dob': patient_dob,
                 'patient_gender': patient_gender,
-                'study_uid': study_uid
+                'study_uid': study_uid,
+                'study_time': study_time_str
             }
             
         except IndexError as e:
@@ -169,6 +254,35 @@ def receive_hl7():
                         'raw_message': message
                     }), 400
                 
+                # Parse timestamp from MSH segment and add 1 hour for Finnish time
+                study_time = None
+                if len(msh_segment) > 7:
+                    try:
+                        # Get timestamp from MSH-7 (index 7)
+                        timestamp_str = str(msh_segment[7][0])
+                        print(f"Raw timestamp from MSH: {timestamp_str}")
+                        
+                        # Handle timestamp with milliseconds (YYYYMMDDHHMMSS.SSS)
+                        if '.' in timestamp_str:
+                            timestamp_str = timestamp_str.split('.')[0]  # Remove milliseconds
+                        
+                        # Parse the timestamp (format: YYYYMMDDHHMMSS)
+                        year = int(timestamp_str[0:4])
+                        month = int(timestamp_str[4:6])
+                        day = int(timestamp_str[6:8])
+                        hour = int(timestamp_str[8:10])
+                        minute = int(timestamp_str[10:12])
+                        second = int(timestamp_str[12:14])
+                        
+                        # Create datetime object in UTC (assuming HL7 timestamp is in UTC)
+                        study_time = datetime(year, month, day, hour, minute, second)
+                        # Store as UTC time without timezone conversion
+                        study_time = study_time.replace(tzinfo=pytz.UTC)
+                        print(f"Study time (UTC): {study_time}")
+                    except (IndexError, ValueError) as e:
+                        print(f"Error parsing timestamp from MSH segment: {e}")
+                        study_time = datetime.now(pytz.UTC)  # Fallback to current UTC time
+                
                 # Get PID segment
                 pid_segment = h.segment('PID')
                 if not pid_segment:
@@ -198,7 +312,7 @@ def receive_hl7():
                 
                 # Extract fields with proper error handling
                 try:
-                    accession_number = str(obr_segment[2][0])
+                    accession_number = str(obr_segment[3][0]) if len(obr_segment) > 3 and obr_segment[3][0] else str(obr_segment[2][0])
                 except IndexError:
                     return jsonify({
                         'status': 'error',
@@ -237,12 +351,21 @@ def receive_hl7():
                 
                 # Extract additional fields
                 patient_id = str(pid_segment[2][0]) if len(pid_segment) > 2 else None
-                patient_dob = str(pid_segment[6][0]) if len(pid_segment) > 6 else None
-                patient_gender = str(pid_segment[7][0]) if len(pid_segment) > 7 else None
+                patient_dob = str(pid_segment[7][0]) if len(pid_segment) > 7 else None
+                patient_gender = str(pid_segment[8][0]) if len(pid_segment) > 8 else None
                 
                 # Get ZDS segment if available
                 zds_segment = h.segment('ZDS')
-                study_uid = str(zds_segment[0][0]) if zds_segment and len(zds_segment) > 0 else None
+                study_uid = None
+                if zds_segment and len(zds_segment) > 1:
+                    try:
+                        zds_value = str(zds_segment[1][0])
+                        if '^' in zds_value:
+                            study_uid = zds_value.split('^')[0]
+                        else:
+                            study_uid = zds_value
+                    except (IndexError, AttributeError) as e:
+                        print(f"Error extracting study UID from ZDS segment: {e}")
                 
                 # Validate patient gender
                 if not patient_gender or patient_gender not in ['M', 'F']:
@@ -256,6 +379,7 @@ def receive_hl7():
                         'message': f'Study with accession number {accession_number} already exists'
                     }), 400
                 
+                # Create new study with Finnish time
                 study = Study(
                     accession_number=accession_number,
                     study_description=study_description,
@@ -268,14 +392,21 @@ def receive_hl7():
                         'patient_id': patient_id,
                         'patient_dob': patient_dob,
                         'patient_gender': patient_gender,
-                        'study_uid': study_uid
+                        'study_uid': study_uid,
+                        'study_time': study_time.isoformat() if study_time else None
                     },
                     ai_classification=result,
                     patient_id=patient_id,
                     patient_dob=patient_dob,
                     patient_gender=patient_gender,
-                    study_uid=study_uid
+                    study_uid=study_uid,
+                    created_at=study_time or get_finnish_time()
                 )
+                print(f"\nDebug - Creating new study:")
+                print(f"Study time from HL7: {study_time}")
+                print(f"Current Finnish time: {get_finnish_time()}")
+                print(f"Final created_at: {study.created_at}")
+                
                 db.session.add(study)
                 db.session.commit()
                 return jsonify({'status': 'success'}), 200
@@ -413,11 +544,32 @@ def index():
     # Apply time filter
     if time_filter != 'all':
         if time_filter == 'today':
-            query = query.filter(Study.created_at >= datetime.now().date())
+            # Get start of today in Finnish timezone
+            today_start = datetime.now(FINNISH_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
+            print(f"\nDebug - Today filter:")
+            print(f"Today start (Finnish time): {today_start}")
+            print(f"Current time (Finnish time): {datetime.now(FINNISH_TZ)}")
+            
+            # Debug: Print all studies and their timestamps
+            all_studies = Study.query.all()
+            print("\nAll studies in database:")
+            for study in all_studies:
+                # Convert to Finnish timezone if needed
+                created_at = study.created_at
+                if created_at.tzinfo is None:
+                    created_at = FINNISH_TZ.localize(created_at)
+                print(f"Study {study.accession_number}: created_at = {created_at}")
+            
+            # Ensure we're comparing timezone-aware timestamps
+            query = query.filter(Study.created_at >= today_start)
+            # Debug: Print the SQL query
+            print(f"\nSQL Query: {query}")
         elif time_filter == 'week':
-            query = query.filter(Study.created_at >= datetime.now() - timedelta(days=7))
+            week_start = datetime.now(FINNISH_TZ) - timedelta(days=7)
+            query = query.filter(Study.created_at >= week_start)
         elif time_filter == 'month':
-            query = query.filter(Study.created_at >= datetime.now() - timedelta(days=30))
+            month_start = datetime.now(FINNISH_TZ) - timedelta(days=30)
+            query = query.filter(Study.created_at >= month_start)
     
     # Apply AC number filter
     if study_type:
@@ -562,56 +714,8 @@ def index():
                          study_type=study_type,
                          result_type=result_type,
                          page=page,
-                         lang=lang)
-
-@app.route('/export')
-def export_csv():
-    """Export studies to CSV."""
-    studies = Study.query.all()
-    
-    output = StringIO()
-    cw = csv.writer(output)
-    
-    # Write header
-    cw.writerow([
-        'Study Date',
-        'Accession Number',
-        'Study Description',
-        'AI Classification',
-        'User Classification',
-        'Original Result',
-        'Patient ID',
-        'Patient DOB',
-        'Patient Gender',
-        'Study UID'
-    ])
-    
-    # Write data
-    for study in studies:
-        # Get the latest classification for this study
-        latest_classification = Classification.query.filter_by(study_id=study.id).order_by(Classification.created_at.desc()).first()
-        user_classification = latest_classification.classification if latest_classification else ''
-        
-        cw.writerow([
-            study.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-            study.accession_number,
-            study.study_description,
-            study.ai_classification,
-            user_classification,
-            study.parsed_data.get('raw_result', ''),
-            study.patient_id or '',
-            study.patient_dob or '',
-            study.patient_gender or '',
-            study.study_uid or ''
-        ])
-    
-    output.seek(0)
-    return send_file(
-        output,
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name=f'radiology_studies_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
-    )
+                         lang=lang,
+                         finnish_tz=FINNISH_TZ)
 
 @app.route('/reset_filters')
 def reset_filters():

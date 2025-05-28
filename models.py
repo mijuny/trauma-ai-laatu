@@ -1,8 +1,16 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.dialects.postgresql import JSON
+import pytz
 
 db = SQLAlchemy()
+
+# Set Finnish timezone
+FINNISH_TZ = pytz.timezone('Europe/Helsinki')
+
+def get_finnish_time():
+    """Get current time in Finnish timezone."""
+    return datetime.now(FINNISH_TZ)
 
 class User(db.Model):
     """Model for storing usernames."""
@@ -10,7 +18,7 @@ class User(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_finnish_time)
     
     # Relationship with classifications
     classifications = db.relationship('Classification', backref='user', lazy=True)
@@ -28,7 +36,7 @@ class Study(db.Model):
     raw_hl7 = db.Column(db.Text, nullable=False)
     parsed_data = db.Column(db.JSON)  # Store parsed data including raw_result
     ai_classification = db.Column(db.String(10), nullable=False)  # TP, TN, FP, FN
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_finnish_time)
     
     # Additional fields from BoneView HL7 message
     patient_id = db.Column(db.String(50))
@@ -50,7 +58,7 @@ class Classification(db.Model):
     study_id = db.Column(db.Integer, db.ForeignKey('studies.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     classification = db.Column(db.String(10), nullable=False)  # TP, TN, FP, FN
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_finnish_time)
 
     def __repr__(self):
         return f'<Classification {self.classification}>' 

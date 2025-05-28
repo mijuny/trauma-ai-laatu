@@ -4,5 +4,6 @@ python-dotenv==1.0.1
 hl7>=0.4.5
 Flask-SQLAlchemy==3.1.1
 python-dateutil==2.8.2
-python-hl7-mllp==0.1.0
-waitress==3.0.0 
+waitress==3.0.0
+hl7apy
+pytz==2024.1 

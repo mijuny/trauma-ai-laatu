@@ -46,4 +46,5 @@ htmlcov/
 .tox/
 
 # Misc
-*.bak 
+*.bac
+accession_counter.txt

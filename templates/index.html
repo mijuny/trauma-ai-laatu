@@ -21,17 +21,96 @@
     </script>
     <style>
         .dark {
-            background-color: #1a1a1a;
-            color: #ffffff;
+            background-color: #111827;
+            color: #f3f4f6;
         }
         .dark .bg-white {
-            background-color: #2d2d2d;
+            background-color: #1f2937;
         }
         .dark .text-gray-700 {
-            color: #e0e0e0;
+            color: #f3f4f6;
         }
         .dark .border-gray-200 {
-            border-color: #404040;
+            border-color: #374151;
+        }
+        .dark .bg-gray-50 {
+            background-color: #374151;
+        }
+        .dark .bg-gray-100 {
+            background-color: #1f2937;
+        }
+        .dark .bg-blue-100 {
+            background-color: #1e40af;
+            color: #ffffff;
+        }
+        .dark .bg-green-100 {
+            background-color: #065f46;
+            color: #ffffff;
+        }
+        .dark .bg-red-100 {
+            background-color: #991b1b;
+            color: #ffffff;
+        }
+        .dark .hover\:bg-gray-50:hover {
+            background-color: #374151;
+        }
+        .dark .hover\:bg-gray-300:hover {
+            background-color: #4b5563;
+        }
+        .dark .bg-blue-50 {
+            background-color: #1e40af;
+            color: #ffffff;
+        }
+        .dark .text-blue-600 {
+            color: #93c5fd;
+        }
+        .dark .text-gray-500 {
+            color: #d1d5db;
+        }
+        .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+            border-color: #374151;
+        }
+        .dark .border-gray-300 {
+            border-color: #4b5563;
+        }
+        .dark .bg-gray-200 {
+            background-color: #374151;
+        }
+        .dark .bg-gray-700 {
+            background-color: #4b5563;
+        }
+        .dark .hover\:bg-gray-600:hover {
+            background-color: #6b7280;
+        }
+        /* Fix for table backgrounds */
+        .dark tbody.bg-white {
+            background-color: #1f2937 !important;
+        }
+        .dark thead.bg-gray-50 {
+            background-color: #374151 !important;
+        }
+        /* Fix for text colors in dark mode */
+        .dark .text-gray-900 {
+            color: #f3f4f6 !important;
+        }
+        .dark .text-gray-700 {
+            color: #e5e7eb !important;
+        }
+        /* Fix for input and select backgrounds */
+        .dark input, .dark select {
+            background-color: #374151 !important;
+            color: #f3f4f6 !important;
+            border-color: #4b5563 !important;
+        }
+        .dark input::placeholder {
+            color: #9ca3af !important;
+        }
+        /* Fix for pagination */
+        .dark .bg-white.px-4 {
+            background-color: #1f2937 !important;
+        }
+        .dark .text-gray-700 {
+            color: #e5e7eb !important;
         }
     </style>
 </head>
@@ -46,7 +125,6 @@
                     <option value="en" {% if lang == 'en' %}selected{% endif %}>English</option>
                 </select>
                 <button onclick="toggleTheme()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded">{{ t('toggle_theme') }}</button>
-                <a href="/export" class="px-4 py-2 bg-blue-500 text-white rounded">{{ t('export_csv') }}</a>
             </div>
         </div>
 
@@ -171,7 +249,7 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                     {% for study in studies.items %}
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">{{ study.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">{{ study.created_at.astimezone(finnish_tz).strftime('%Y-%m-%d %H:%M:%S') }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">{{ study.accession_number }}</td>
                         <td class="px-6 py-4">{{ study.study_description }}</td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -263,6 +341,39 @@
     </div>
 
     <script>
+        // Auto-refresh functionality
+        let refreshInterval = 30000; // 30 seconds
+        let refreshTimer = null;
+
+        function startAutoRefresh() {
+            // Clear any existing timer
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+            }
+            // Start new timer
+            refreshTimer = setInterval(() => {
+                // Preserve current filters and page
+                const timeFilter = document.getElementById('timeFilter').value;
+                const studyType = document.getElementById('studyType').value;
+                const resultType = document.getElementById('resultType').value;
+                const username = getUsername();
+                const currentPage = new URLSearchParams(window.location.search).get('page') || 1;
+
+                const params = new URLSearchParams();
+                if (timeFilter && timeFilter !== 'all') params.append('time_filter', timeFilter);
+                if (studyType) params.append('study_type', studyType);
+                params.append('result_type', resultType);
+                if (username) params.append('username', username);
+                params.append('page', currentPage);
+
+                // Reload the page with current filters
+                window.location.href = '/?' + params.toString();
+            }, refreshInterval);
+        }
+
+        // Start auto-refresh when page loads
+        document.addEventListener('DOMContentLoaded', startAutoRefresh);
+
         function toggleTheme() {
             document.body.classList.toggle('dark');
         }

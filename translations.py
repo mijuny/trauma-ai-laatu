@@ -1,8 +1,7 @@
 TRANSLATIONS = {
     'fi': {
-        'title': 'Trauma AI laadunvalvonta',
+        'title': 'Pekka 2000 - AI laadunvalvonta',
         'toggle_theme': 'Vaihda teemaa',
-        'export_csv': 'Vie CSV',
         'filters': 'Suodattimet',
         'all_time': 'Kaikki ajat',
         'today': 'Tänään',
@@ -16,7 +15,7 @@ TRANSLATIONS = {
         'false_negative': 'Väärä negatiivinen',
         'select_username': 'Valitse käyttäjätunnus',
         'new_username': 'Uusi käyttäjätunnus',
-        'statistics': 'Tilastot',
+        'statistics': 'Tilastot - Gleamer Boneview',
         'total_studies': 'Tutkimuksia yhteensä',
         'total_classifications': 'Luokitteluja yhteensä',
         'classification_metrics': 'Luokittelumetriikat',
@@ -47,9 +46,8 @@ TRANSLATIONS = {
         'classified_cases': 'Luokitellut tapaukset'
     },
     'en': {
-        'title': 'Trauma AI Quality Control',
+        'title': 'Pekka 2000 - AI Quality Control',
         'toggle_theme': 'Toggle Theme',
-        'export_csv': 'Export CSV',
         'filters': 'Filters',
         'all_time': 'All Time',
         'today': 'Today',
@@ -63,7 +61,7 @@ TRANSLATIONS = {
         'false_negative': 'False Negative',
         'select_username': 'Select Username',
         'new_username': 'New Username',
-        'statistics': 'Statistics',
+        'statistics': 'Statistics - Gleamer Boneview',
         'total_studies': 'Total Studies',
         'total_classifications': 'Total Classifications',
         'classification_metrics': 'Classification Metrics',
