@@ -546,24 +546,7 @@ def index():
         if time_filter == 'today':
             # Get start of today in Finnish timezone
             today_start = datetime.now(FINNISH_TZ).replace(hour=0, minute=0, second=0, microsecond=0)
-            print(f"\nDebug - Today filter:")
-            print(f"Today start (Finnish time): {today_start}")
-            print(f"Current time (Finnish time): {datetime.now(FINNISH_TZ)}")
-            
-            # Debug: Print all studies and their timestamps
-            all_studies = Study.query.all()
-            print("\nAll studies in database:")
-            for study in all_studies:
-                # Convert to Finnish timezone if needed
-                created_at = study.created_at
-                if created_at.tzinfo is None:
-                    created_at = FINNISH_TZ.localize(created_at)
-                print(f"Study {study.accession_number}: created_at = {created_at}")
-            
-            # Ensure we're comparing timezone-aware timestamps
             query = query.filter(Study.created_at >= today_start)
-            # Debug: Print the SQL query
-            print(f"\nSQL Query: {query}")
         elif time_filter == 'week':
             week_start = datetime.now(FINNISH_TZ) - timedelta(days=7)
             query = query.filter(Study.created_at >= week_start)
