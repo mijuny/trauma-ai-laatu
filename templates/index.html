@@ -244,6 +244,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('study_description') }}</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('ai_classification') }}</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('user_classification') }}</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('follow_up_classification') }}</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ t('actions') }}</th>
                     </tr>
                 </thead>
@@ -275,22 +276,51 @@
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            {% if study.classifications %}
-                                {% if study.classifications[-1].classification in ['TP', 'FN'] %}
+                            {% set user_class = study.classifications|selectattr('classification_type', 'equalto', 'USER')|list %}
+                            {% if user_class %}
+                                {% set last_user = user_class|last %}
+                                {% if last_user.classification in ['TP', 'FN'] %}
                                     {{ t('positive') }}
-                                {% elif study.classifications[-1].classification in ['TN', 'FP'] %}
+                                {% elif last_user.classification in ['TN', 'FP'] %}
                                     {{ t('negative') }}
                                 {% else %}
-                                    {{ study.classifications[-1].classification }}
+                                    {{ last_user.classification }}
                                 {% endif %}
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <select onchange="classifyStudy({{ study.id }}, this.value)" class="border rounded p-1">
-                                <option value="">{{ t('select_classification') }}</option>
-                                <option value="POSITIVE" {% if study.classifications and study.classifications[-1].classification in ['TP', 'FN'] %}selected{% endif %}>{{ t('positive') }}</option>
-                                <option value="NEGATIVE" {% if study.classifications and study.classifications[-1].classification in ['TN', 'FP'] %}selected{% endif %}>{{ t('negative') }}</option>
-                            </select>
+                            {% set follow_up = study.classifications|selectattr('classification_type', 'equalto', 'FOLLOW_UP')|list %}
+                            {% if follow_up %}
+                                {% set last_follow_up = follow_up|last %}
+                                {% if last_follow_up.classification in ['TP', 'FN'] %}
+                                    {{ t('positive') }}
+                                {% elif last_follow_up.classification in ['TN', 'FP'] %}
+                                    {{ t('negative') }}
+                                {% else %}
+                                    {{ last_follow_up.classification }}
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex flex-col">
+                                {% set user_class = study.classifications|selectattr('classification_type', 'equalto', 'USER')|list %}
+                                {% set last_user = user_class|last if user_class else None %}
+                                {% set follow_up = study.classifications|selectattr('classification_type', 'equalto', 'FOLLOW_UP')|list %}
+                                {% set last_follow_up = follow_up|last if follow_up else None %}
+                                <select id="classification_{{ study.id }}" onchange="classifyStudy({{ study.id }}, this.value)" class="border rounded p-1 bg-white dark:bg-gray-700">
+                                    <option value="">{{ t('select_classification') }}</option>
+                                    <optgroup label="{{ t('user_classification') }}">
+                                        <option value="USER_POSITIVE" {% if last_user and last_user.classification in ['TP', 'FN'] %}selected{% endif %}>{{ t('positive') }}</option>
+                                        <option value="USER_NEGATIVE" {% if last_user and last_user.classification in ['TN', 'FP'] %}selected{% endif %}>{{ t('negative') }}</option>
+                                    </optgroup>
+                                    <optgroup label="{{ t('follow_up_classification') }}">
+                                        <option value="FOLLOW_UP_POSITIVE" {% if last_follow_up and last_follow_up.classification in ['TP', 'FN'] %}selected{% endif %}>{{ t('positive') }}</option>
+                                        <option value="FOLLOW_UP_NEGATIVE" {% if last_follow_up and last_follow_up.classification in ['TN', 'FP'] %}selected{% endif %}>{{ t('negative') }}</option>
+                                    </optgroup>
+                                    <option value="REMOVE_USER">{{ t('remove_classification') }} ({{ t('user_classification') }})</option>
+                                    <option value="REMOVE_FOLLOW_UP">{{ t('remove_classification') }} ({{ t('follow_up_classification') }})</option>
+                                </select>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -475,17 +505,43 @@
 
         function classifyStudy(studyId, classification) {
             if (!classification) return;
-            
             const username = getUsername();
             if (!username) {
                 alert('Please select or enter your username before classifying');
                 return;
             }
-
-            if (!confirm('Are you sure you want to classify this study as ' + classification + '?')) {
-                return;
+            let classificationType, classificationValue;
+            if (classification === 'REMOVE_USER') {
+                classificationType = 'USER';
+                classificationValue = 'REMOVE';
+            } else if (classification === 'REMOVE_FOLLOW_UP') {
+                classificationType = 'FOLLOW_UP';
+                classificationValue = 'REMOVE';
+            } else {
+                // Parse the combined value for both user and follow-up
+                let parts = classification.split('_');
+                if (parts.length === 3) {
+                    classificationType = parts[0] + '_' + parts[1];
+                    classificationValue = parts[2];
+                } else {
+                    [classificationType, classificationValue] = parts;
+                }
             }
-
+            if (classificationValue === 'REMOVE') {
+                if (!confirm('Are you sure you want to remove the ' + (classificationType === 'USER' ? '{{ t('user_classification') }}' : '{{ t('follow_up_classification') }}') + '?')) {
+                    return;
+                }
+            } else {
+                if (!confirm('Are you sure you want to classify this study as ' + (classificationValue === 'POSITIVE' ? '{{ t('positive') }}' : '{{ t('negative') }}') + ' (' + (classificationType === 'USER' ? '{{ t('user_classification') }}' : '{{ t('follow_up_classification') }}') + ')?')) {
+                    return;
+                }
+            }
+            console.log('Sending classification:', {
+                study_id: studyId,
+                username: username,
+                classification: classificationValue,
+                classification_type: classificationType
+            });
             fetch('/api/classify', {
                 method: 'POST',
                 headers: {
@@ -494,7 +550,8 @@
                 body: JSON.stringify({
                     study_id: studyId,
                     username: username,
-                    classification: classification
+                    classification: classificationValue,
+                    classification_type: classificationType
                 })
             })
             .then(response => {

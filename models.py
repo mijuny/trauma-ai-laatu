@@ -58,6 +58,7 @@ class Classification(db.Model):
     study_id = db.Column(db.Integer, db.ForeignKey('studies.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     classification = db.Column(db.String(10), nullable=False)  # TP, TN, FP, FN
+    classification_type = db.Column(db.String(10), nullable=False, default='USER')  # USER or FOLLOW_UP
     created_at = db.Column(db.DateTime, default=get_finnish_time)
 
     def __repr__(self):

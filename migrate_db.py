@@ -4,36 +4,11 @@ from sqlalchemy import text
 
 def migrate_database():
     with app.app_context():
-        # Drop existing tables
-        db.drop_all()
-        
-        # Create new tables with updated schema
-        db.create_all()
-        
-        # Add new columns to studies table
         try:
-            # Add patient_id column
+            # Add classification_type column to classifications table
             db.session.execute(text("""
-                ALTER TABLE studies 
-                ADD COLUMN IF NOT EXISTS patient_id VARCHAR(50)
-            """))
-            
-            # Add patient_dob column
-            db.session.execute(text("""
-                ALTER TABLE studies 
-                ADD COLUMN IF NOT EXISTS patient_dob VARCHAR(10)
-            """))
-            
-            # Add patient_gender column with CHECK constraint
-            db.session.execute(text("""
-                ALTER TABLE studies 
-                ADD COLUMN IF NOT EXISTS patient_gender VARCHAR(1) CHECK (patient_gender IN ('M', 'F'))
-            """))
-            
-            # Add study_uid column
-            db.session.execute(text("""
-                ALTER TABLE studies 
-                ADD COLUMN IF NOT EXISTS study_uid VARCHAR(200)
+                ALTER TABLE classifications 
+                ADD COLUMN IF NOT EXISTS classification_type VARCHAR(10) NOT NULL DEFAULT 'USER'
             """))
             
             db.session.commit()

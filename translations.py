@@ -36,6 +36,7 @@ TRANSLATIONS = {
         'positive': 'Positiivinen',
         'negative': 'Negatiivinen',
         'doubt': 'Epävarma',
+        'classification_type': 'Luokittelun tyyppi',
         'reset_filters': 'Tyhjennä suodattimet',
         'previous': 'Edellinen',
         'next': 'Seuraava',
@@ -44,7 +45,9 @@ TRANSLATIONS = {
         'of': '/',
         'results': 'tulosta',
         'classified_cases': 'Luokitellut tapaukset',
-        'my_classified_cases': 'Omat luokitellut tapaukset'
+        'my_classified_cases': 'Omat luokitellut tapaukset',
+        'follow_up_classification': 'Jatkotutkimuksen luokittelu',
+        'remove_classification': 'Poista luokittelu'
     },
     'en': {
         'title': 'Pekka 2000 - AI Quality Control',
@@ -83,6 +86,7 @@ TRANSLATIONS = {
         'positive': 'Positive',
         'negative': 'Negative',
         'doubt': 'Doubt',
+        'classification_type': 'Classification Type',
         'reset_filters': 'Reset Filters',
         'previous': 'Previous',
         'next': 'Next',
@@ -91,6 +95,8 @@ TRANSLATIONS = {
         'of': 'of',
         'results': 'results',
         'classified_cases': 'Classified Cases',
-        'my_classified_cases': 'My Classified Cases'
+        'my_classified_cases': 'My Classified Cases',
+        'follow_up_classification': 'Follow-up Classification',
+        'remove_classification': 'Remove classification'
     }
 } 

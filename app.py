@@ -73,13 +73,11 @@ def parse_hl7_message(message):
         h = hl7.parse(message)
         
         # Print all segments for debugging
-        print("\nAvailable segments:")
         for segment_id in ['MSH', 'PID', 'OBR', 'OBX', 'ZDS']:
             segment = h.segment(segment_id)
             if segment:
                 print(f"Segment {segment_id}: {segment}")
                 # Print detailed segment structure
-                print(f"Segment {segment_id} structure:")
                 for i, field in enumerate(segment):
                     print(f"  Field {i}: {field}")
         
@@ -460,15 +458,49 @@ def add_username():
 def classify_study():
     """Classify a study."""
     data = request.json
-    if not all(k in data for k in ['study_id', 'username', 'classification']):
+    print("Received classify request:", data)
+    if not all(k in data for k in ['study_id', 'username', 'classification', 'classification_type']):
         return jsonify({'error': 'Missing required fields'}), 400
     
-    # Validate classification value
+    # Handle classification removal
+    if data['classification'] == 'REMOVE':
+        # Get or create user
+        username = data['username'].strip()
+        if not username:
+            return jsonify({'error': 'Username cannot be empty'}), 400
+        
+        user = User.query.filter(
+            db.func.lower(User.username) == db.func.lower(username)
+        ).first()
+        
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Find and delete the classification
+        classification = Classification.query.filter(
+            Classification.study_id == data['study_id'],
+            Classification.user_id == user.id,
+            Classification.classification_type == data['classification_type']
+        ).first()
+        
+        if classification:
+            db.session.delete(classification)
+            db.session.commit()
+            return jsonify({'status': 'success'}), 200
+        else:
+            return jsonify({'error': 'No classification found to remove'}), 404
+    
+    # Validate classification value for new classifications
     valid_classifications = ['POSITIVE', 'NEGATIVE']
     if data['classification'] not in valid_classifications:
         return jsonify({'error': 'Invalid classification value'}), 400
     
-    # Check if study exists - using Session.get() instead of Query.get()
+    # Validate classification type
+    valid_types = ['USER', 'FOLLOW_UP']
+    if data['classification_type'] not in valid_types:
+        return jsonify({'error': 'Invalid classification type'}), 400
+    
+    # Check if study exists
     study = db.session.get(Study, data['study_id'])
     if not study:
         return jsonify({'error': 'Study not found'}), 404
@@ -487,9 +519,8 @@ def classify_study():
         db.session.add(user)
         db.session.flush()  # Get the user ID without committing
     
-    # Determine the final classification based on AI and user input
+    # Get AI classification
     ai_classification = study.ai_classification
-    user_classification = data['classification']
     
     # Convert AI classification to POSITIVE/NEGATIVE if it's TP/TN
     if ai_classification in ['TP', 'FP']:
@@ -497,22 +528,36 @@ def classify_study():
     elif ai_classification in ['TN', 'FN']:
         ai_classification = 'NEGATIVE'
     
-    # Determine final classification
-    if ai_classification == 'POSITIVE' and user_classification == 'POSITIVE':
-        final_classification = 'TP'
-    elif ai_classification == 'NEGATIVE' and user_classification == 'NEGATIVE':
-        final_classification = 'TN'
-    elif (ai_classification == 'POSITIVE' or ai_classification == 'DOUBT') and user_classification == 'NEGATIVE':
-        final_classification = 'FP'
-    elif ai_classification == 'NEGATIVE' and user_classification == 'POSITIVE':
-        final_classification = 'FN'
-    else:
-        return jsonify({'error': f'Invalid classification combination: AI={ai_classification}, User={user_classification}'}), 400
+    # Get the classification value
+    classification_value = data['classification']
     
-    # Check for existing classification by the same user for this study
+    # Determine final classification based on classification type and rules
+    if data['classification_type'] == 'FOLLOW_UP':
+        # Follow-up classification rules
+        if classification_value == 'POSITIVE' and ai_classification == 'POSITIVE':
+            final_classification = 'TP'
+        elif classification_value == 'NEGATIVE' and ai_classification == 'NEGATIVE':
+            final_classification = 'TN'
+        elif classification_value == 'POSITIVE' and ai_classification == 'NEGATIVE':
+            final_classification = 'FN'
+        elif classification_value == 'NEGATIVE' and ai_classification == 'POSITIVE':
+            final_classification = 'FP'
+    else:  # USER classification
+        # User classification rules
+        if classification_value == 'POSITIVE' and ai_classification == 'POSITIVE':
+            final_classification = 'TP'
+        elif classification_value == 'NEGATIVE' and ai_classification == 'NEGATIVE':
+            final_classification = 'TN'
+        elif classification_value == 'NEGATIVE' and (ai_classification == 'POSITIVE' or ai_classification == 'DOUBT'):
+            final_classification = 'FP'
+        elif classification_value == 'POSITIVE' and ai_classification == 'NEGATIVE':
+            final_classification = 'FN'
+    
+    # Check for existing classification by the same user for this study and type
     existing_classification = Classification.query.filter(
         Classification.study_id == data['study_id'],
-        Classification.user_id == user.id
+        Classification.user_id == user.id,
+        Classification.classification_type == data['classification_type']
     ).first()
     
     if existing_classification:
@@ -524,7 +569,8 @@ def classify_study():
         classification = Classification(
             study_id=data['study_id'],
             user_id=user.id,
-            classification=final_classification
+            classification=final_classification,
+            classification_type=data['classification_type']
         )
         db.session.add(classification)
     
@@ -651,25 +697,43 @@ def index():
     fn_count = 0
     
     for study in all_studies:
-        user_classification = all_classification_map.get(study.id)
+        # Get all classifications for this study
+        study_classifications = [c for c in all_classifications if c.study_id == study.id]
         
-        if user_classification:
-            # User has provided a classification
-            if user_classification == 'TP':
+        # Check for follow-up classification first
+        follow_up_classification = next((c for c in study_classifications if c.classification_type == 'FOLLOW_UP'), None)
+        
+        if follow_up_classification:
+            # Use follow-up classification
+            if follow_up_classification.classification == 'TP':
                 tp_count += 1
-            elif user_classification == 'TN':
+            elif follow_up_classification.classification == 'TN':
                 tn_count += 1
-            elif user_classification == 'FP':
+            elif follow_up_classification.classification == 'FP':
                 fp_count += 1
-            elif user_classification == 'FN':
+            elif follow_up_classification.classification == 'FN':
                 fn_count += 1
         else:
-            # No user classification - assume AI is correct
-            # Treat DOUBT as POSITIVE for statistics
-            if study.ai_classification in ['POSITIVE', 'DOUBT']:
-                tp_count += 1  # Assume True Positive
-            else:  # ai_classification == 'NEGATIVE'
-                tn_count += 1  # Assume True Negative
+            # No follow-up, use user classification if available
+            user_classification = next((c for c in study_classifications if c.classification_type == 'USER'), None)
+            
+            if user_classification:
+                # User has provided a classification
+                if user_classification.classification == 'TP':
+                    tp_count += 1
+                elif user_classification.classification == 'TN':
+                    tn_count += 1
+                elif user_classification.classification == 'FP':
+                    fp_count += 1
+                elif user_classification.classification == 'FN':
+                    fn_count += 1
+            else:
+                # No user classification - assume AI is correct
+                # Treat DOUBT as POSITIVE for statistics
+                if study.ai_classification in ['POSITIVE', 'DOUBT']:
+                    tp_count += 1  # Assume True Positive
+                else:  # ai_classification == 'NEGATIVE'
+                    tn_count += 1  # Assume True Negative
     
     # Calculate metrics
     total_classified = tp_count + tn_count + fp_count + fn_count
