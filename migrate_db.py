@@ -18,5 +18,20 @@ def migrate_database():
             print(f"Error during migration: {e}")
             raise
 
+def add_comments_table():
+    with db.engine.connect() as conn:
+        conn.execute(text('''
+            CREATE TABLE IF NOT EXISTS comments (
+                id SERIAL PRIMARY KEY,
+                study_id INTEGER REFERENCES studies(id) ON DELETE CASCADE,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        '''))
+
 if __name__ == '__main__':
-    migrate_database() 
+    with app.app_context():
+        migrate_database()
+        add_comments_table() 

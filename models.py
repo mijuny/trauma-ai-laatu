@@ -62,4 +62,15 @@ class Classification(db.Model):
     created_at = db.Column(db.DateTime, default=get_finnish_time)
 
     def __repr__(self):
-        return f'<Classification {self.classification}>' 
+        return f'<Classification {self.classification}>'
+
+class Comment(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    study_id = db.Column(db.Integer, db.ForeignKey('studies.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    text = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    user = db.relationship('User', backref='comments')
+    study = db.relationship('Study', backref='comments') 

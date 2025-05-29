@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, render_template, send_file, session, redirect
 from flask_sqlalchemy import SQLAlchemy
-from models import db, Study, Classification, User
+from models import db, Study, Classification, User, Comment
 import hl7
 import csv
 from io import StringIO
@@ -468,27 +468,25 @@ def classify_study():
         username = data['username'].strip()
         if not username:
             return jsonify({'error': 'Username cannot be empty'}), 400
-        
         user = User.query.filter(
             db.func.lower(User.username) == db.func.lower(username)
         ).first()
-        
         if not user:
             return jsonify({'error': 'User not found'}), 404
-        
-        # Find and delete the classification
+        # Find and delete the classification (allow any user to remove any classification)
         classification = Classification.query.filter(
             Classification.study_id == data['study_id'],
-            Classification.user_id == user.id,
             Classification.classification_type == data['classification_type']
         ).first()
-        
         if classification:
             db.session.delete(classification)
             db.session.commit()
             return jsonify({'status': 'success'}), 200
         else:
-            return jsonify({'error': 'No classification found to remove'}), 404
+            if data['classification_type'] == 'FOLLOW_UP':
+                return jsonify({'error': 'Jatkotutkimuksella ei ole luokittelua'}), 404
+            else:
+                return jsonify({'error': 'Käyttäjällä ei ole luokittelua'}), 404
     
     # Validate classification value for new classifications
     valid_classifications = ['POSITIVE', 'NEGATIVE']
@@ -786,6 +784,72 @@ def reset_filters():
     if username:
         return redirect(f'/?username={username}')
     return redirect('/')
+
+@app.route('/api/comments', methods=['GET'])
+def get_comments():
+    study_id = request.args.get('study_id')
+    if not study_id:
+        return jsonify({'error': 'Missing study_id'}), 400
+    comments = Comment.query.filter_by(study_id=study_id).order_by(Comment.created_at.desc()).all()
+    return jsonify([
+        {
+            'id': c.id,
+            'user': c.user.username,
+            'user_id': c.user_id,
+            'text': c.text,
+            'created_at': c.created_at.isoformat(),
+            'updated_at': c.updated_at.isoformat() if c.updated_at else None
+        } for c in comments
+    ])
+
+@app.route('/api/comments', methods=['POST'])
+def add_comment():
+    data = request.json
+    if not all(k in data for k in ['study_id', 'username', 'text']):
+        return jsonify({'error': 'Missing required fields'}), 400
+    user = User.query.filter(db.func.lower(User.username) == db.func.lower(data['username'])).first()
+    if not user:
+        user = User(username=data['username'])
+        db.session.add(user)
+        db.session.flush()
+    comment = Comment(
+        study_id=data['study_id'],
+        user_id=user.id,
+        text=data['text']
+    )
+    db.session.add(comment)
+    db.session.commit()
+    return jsonify({'status': 'success', 'id': comment.id}), 200
+
+@app.route('/api/comments/<int:comment_id>', methods=['PUT'])
+def edit_comment(comment_id):
+    data = request.json
+    if not all(k in data for k in ['username', 'text']):
+        return jsonify({'error': 'Missing required fields'}), 400
+    comment = Comment.query.get(comment_id)
+    if not comment:
+        return jsonify({'error': 'Comment not found'}), 404
+    user = User.query.filter(db.func.lower(User.username) == db.func.lower(data['username'])).first()
+    if not user or user.id != comment.user_id:
+        return jsonify({'error': 'Permission denied'}), 403
+    comment.text = data['text']
+    db.session.commit()
+    return jsonify({'status': 'success'}), 200
+
+@app.route('/api/comments/<int:comment_id>', methods=['DELETE'])
+def delete_comment(comment_id):
+    data = request.json
+    if not data or 'username' not in data:
+        return jsonify({'error': 'Missing username'}), 400
+    comment = Comment.query.get(comment_id)
+    if not comment:
+        return jsonify({'error': 'Comment not found'}), 404
+    user = User.query.filter(db.func.lower(User.username) == db.func.lower(data['username'])).first()
+    if not user or user.id != comment.user_id:
+        return jsonify({'error': 'Permission denied'}), 403
+    db.session.delete(comment)
+    db.session.commit()
+    return jsonify({'status': 'success'}), 200
 
 if __name__ == '__main__':
     import threading

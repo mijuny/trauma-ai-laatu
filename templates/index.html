@@ -277,7 +277,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             {% set user_class = study.classifications|selectattr('classification_type', 'equalto', 'USER')|list %}
-                            {% if user_class %}
+                            {% if user_class and user_class|length > 0 %}
                                 {% set last_user = user_class|last %}
                                 {% if last_user.classification in ['TP', 'FN'] %}
                                     {{ t('positive') }}
@@ -286,12 +286,14 @@
                                 {% else %}
                                     {{ last_user.classification }}
                                 {% endif %}
+                            {% else %}
+                                <!-- No user classification -->
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            {% set follow_up = study.classifications|selectattr('classification_type', 'equalto', 'FOLLOW_UP')|list %}
-                            {% if follow_up %}
-                                {% set last_follow_up = follow_up|last %}
+                            {% set follow_up_class = study.classifications|selectattr('classification_type', 'equalto', 'FOLLOW_UP')|list %}
+                            {% if follow_up_class and follow_up_class|length > 0 %}
+                                {% set last_follow_up = follow_up_class|last %}
                                 {% if last_follow_up.classification in ['TP', 'FN'] %}
                                     {{ t('positive') }}
                                 {% elif last_follow_up.classification in ['TN', 'FP'] %}
@@ -299,6 +301,8 @@
                                 {% else %}
                                     {{ last_follow_up.classification }}
                                 {% endif %}
+                            {% else %}
+                                <!-- No follow-up classification -->
                             {% endif %}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
@@ -307,19 +311,34 @@
                                 {% set last_user = user_class|last if user_class else None %}
                                 {% set follow_up = study.classifications|selectattr('classification_type', 'equalto', 'FOLLOW_UP')|list %}
                                 {% set last_follow_up = follow_up|last if follow_up else None %}
-                                <select id="classification_{{ study.id }}" onchange="classifyStudy({{ study.id }}, this.value)" class="border rounded p-1 bg-white dark:bg-gray-700">
-                                    <option value="">{{ t('select_classification') }}</option>
+                                <select id="classification_{{ study.id }}" onchange="classifyStudy({{ study.id }}, this.value)" class="border rounded p-1 bg-white dark:bg-gray-700 mb-2">
+                                    <option value="" {% if not last_user and not last_follow_up %}selected{% endif %}>{{ t('select_classification') }}</option>
                                     <optgroup label="{{ t('user_classification') }}">
                                         <option value="USER_POSITIVE" {% if last_user and last_user.classification in ['TP', 'FN'] %}selected{% endif %}>{{ t('positive') }}</option>
                                         <option value="USER_NEGATIVE" {% if last_user and last_user.classification in ['TN', 'FP'] %}selected{% endif %}>{{ t('negative') }}</option>
                                     </optgroup>
                                     <optgroup label="{{ t('follow_up_classification') }}">
-                                        <option value="FOLLOW_UP_POSITIVE" {% if last_follow_up and last_follow_up.classification in ['TP', 'FN'] %}selected{% endif %}>{{ t('positive') }}</option>
-                                        <option value="FOLLOW_UP_NEGATIVE" {% if last_follow_up and last_follow_up.classification in ['TN', 'FP'] %}selected{% endif %}>{{ t('negative') }}</option>
+                                        <option value="FOLLOW_UP_POSITIVE" {% if not last_user and last_follow_up and last_follow_up.classification in ['TP', 'FN'] %}selected{% endif %}>{{ t('positive') }}</option>
+                                        <option value="FOLLOW_UP_NEGATIVE" {% if not last_user and last_follow_up and last_follow_up.classification in ['TN', 'FP'] %}selected{% endif %}>{{ t('negative') }}</option>
                                     </optgroup>
-                                    <option value="REMOVE_USER">{{ t('remove_classification') }} ({{ t('user_classification') }})</option>
-                                    <option value="REMOVE_FOLLOW_UP">{{ t('remove_classification') }} ({{ t('follow_up_classification') }})</option>
+                                    <option value="REMOVE_USER">Poista käyttäjän luokittelu</option>
+                                    <option value="REMOVE_FOLLOW_UP">Poista jatkotutkimuksen luokittelu</option>
                                 </select>
+                                <div id="comment-section-{{ study.id }}" style="max-width: 350px; word-break: break-word;">
+                                    <div id="latest-comment-{{ study.id }}" class="text-xs text-gray-600 mb-1"></div>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <input type="text" id="new-comment-input-{{ study.id }}" class="border rounded text-xs px-1 py-0.5 w-full" placeholder="Lisää kommentti..." onfocus="expandCommentInput({{ study.id }})" style="max-width: 120px;" />
+                                        <button class="text-blue-600 text-xs whitespace-nowrap" onclick="showAllComments({{ study.id }})">Näytä kommentit</button>
+                                    </div>
+                                    <div id="comment-textarea-wrapper-{{ study.id }}" class="hidden flex flex-col gap-1" style="max-width: 100%;">
+                                        <textarea id="new-comment-textarea-{{ study.id }}" class="border rounded p-1 w-full text-sm" rows="3" placeholder="Lisää kommentti..." style="resize: vertical; max-width: 100%;"></textarea>
+                                        <div class="flex gap-2 mt-1">
+                                            <button class="bg-blue-600 text-white text-xs px-2 py-1 rounded" onclick="saveComment({{ study.id }})">Tallenna</button>
+                                            <button class="bg-gray-300 text-gray-800 text-xs px-2 py-1 rounded" onclick="shrinkCommentInput({{ study.id }})">Peruuta</button>
+                                        </div>
+                                        <button class="text-blue-600 text-xs mt-1 block w-full text-left" onclick="showAllComments({{ study.id }})">Näytä kommentit</button>
+                                    </div>
+                                </div>
                             </div>
                         </td>
                     </tr>
@@ -378,6 +397,16 @@
                 </div>
             </div>
             {% endif %}
+        </div>
+    </div>
+
+    <div id="comments-modal" class="fixed z-50 inset-0 bg-black bg-opacity-40 flex items-center justify-center hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">Kommentit</h3>
+                <button onclick="closeCommentsModal()" class="text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div id="comments-modal-list"></div>
         </div>
     </div>
 
@@ -536,12 +565,6 @@
                     return;
                 }
             }
-            console.log('Sending classification:', {
-                study_id: studyId,
-                username: username,
-                classification: classificationValue,
-                classification_type: classificationType
-            });
             fetch('/api/classify', {
                 method: 'POST',
                 headers: {
@@ -564,6 +587,8 @@
             })
             .then(data => {
                 if (data.status === 'success') {
+                    // Reset dropdown to default after removal or change
+                    document.getElementById('classification_' + studyId).selectedIndex = 0;
                     location.reload();
                 } else {
                     alert('Error: ' + (data.error || 'Unknown error occurred'));
@@ -609,6 +634,133 @@
             document.getElementById('studyType').value = '';
             document.getElementById('resultType').value = '';
             window.location.href = '/reset_filters?username=' + encodeURIComponent(currentUsername);
+        }
+
+        function expandCommentInput(studyId) {
+            document.getElementById('new-comment-input-' + studyId).classList.add('hidden');
+            const wrapper = document.getElementById('comment-textarea-wrapper-' + studyId);
+            wrapper.classList.remove('hidden');
+            const textarea = document.getElementById('new-comment-textarea-' + studyId);
+            textarea.value = '';
+            textarea.focus();
+        }
+        function shrinkCommentInput(studyId) {
+            document.getElementById('new-comment-input-' + studyId).classList.remove('hidden');
+            document.getElementById('comment-textarea-wrapper-' + studyId).classList.add('hidden');
+            document.getElementById('new-comment-textarea-' + studyId).value = '';
+        }
+        function saveComment(studyId) {
+            const username = getUsername();
+            if (!username) {
+                alert('Please select or enter your username before commenting');
+                return;
+            }
+            let text = document.getElementById('new-comment-textarea-' + studyId).value;
+            if (!text.trim()) return;
+            fetch('/api/comments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ study_id: studyId, username: username, text: text })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    shrinkCommentInput(studyId);
+                    loadLatestComment(studyId);
+                } else {
+                    alert('Virhe: ' + (data.error || 'Tuntematon virhe kommentin tallennuksessa'));
+                }
+            });
+        }
+        function loadLatestComment(studyId) {
+            fetch('/api/comments?study_id=' + studyId)
+            .then(res => res.json())
+            .then(comments => {
+                const latest = comments && comments.length > 0 ? comments[0] : null;
+                const el = document.getElementById('latest-comment-' + studyId);
+                if (latest) {
+                    el.innerHTML = `<span class='font-semibold'>${latest.user}:</span> ${latest.text}`;
+                } else {
+                    el.innerHTML = '';
+                }
+            });
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            {% for study in studies.items %}
+            loadLatestComment({{ study.id }});
+            {% endfor %}
+        });
+        // Modal for all comments
+        function showAllComments(studyId) {
+            fetch('/api/comments?study_id=' + studyId)
+            .then(res => res.json())
+            .then(comments => {
+                const list = document.getElementById('comments-modal-list');
+                list.innerHTML = '';
+                if (comments.length === 0) {
+                    list.innerHTML = '<div class="text-gray-500">Ei kommentteja.</div>';
+                } else {
+                    comments.forEach(comment => {
+                        const div = document.createElement('div');
+                        div.className = 'mb-2 p-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900';
+                        div.innerHTML = `<span class='font-semibold'>${comment.user}:</span> ${comment.text} <span class='text-xs text-gray-400'>${new Date(comment.created_at).toLocaleString()}</span>`;
+                        // Add edit/delete buttons if user matches
+                        const username = getUsername();
+                        if (username && username.toLowerCase() === comment.user.toLowerCase()) {
+                            div.innerHTML += ` <button class='text-blue-600 text-xs' onclick='editComment(${comment.id}, "${comment.text.replace(/"/g, '&quot;')}")'>Muokkaa</button>`;
+                            div.innerHTML += ` <button class='text-red-600 text-xs' onclick='deleteComment(${comment.id}, ${studyId})'>Poista</button>`;
+                        }
+                        list.appendChild(div);
+                    });
+                }
+                document.getElementById('comments-modal').classList.remove('hidden');
+            });
+        }
+        function closeCommentsModal() {
+            document.getElementById('comments-modal').classList.add('hidden');
+        }
+        function editComment(commentId, oldText) {
+            const newText = prompt('Muokkaa kommenttia:', oldText);
+            if (newText === null) return;
+            const username = getUsername();
+            fetch(`/api/comments/${commentId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username, text: newText })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    closeCommentsModal();
+                    // Find the studyId for this comment and reload
+                    document.querySelectorAll('[id^="comment-section-"]').forEach(div => {
+                        if (div.innerHTML.includes(`editComment(${commentId},`)) {
+                            const studyId = div.id.split('-')[2];
+                            loadLatestComment(studyId);
+                        }
+                    });
+                } else {
+                    alert('Virhe: ' + (data.error || 'Tuntematon virhe kommentin muokkauksessa'));
+                }
+            });
+        }
+        function deleteComment(commentId, studyId) {
+            const username = getUsername();
+            if (!confirm('Haluatko varmasti poistaa tämän kommentin?')) return;
+            fetch(`/api/comments/${commentId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    closeCommentsModal();
+                    loadLatestComment(studyId);
+                } else {
+                    alert('Virhe: ' + (data.error || 'Tuntematon virhe kommentin poistossa'));
+                }
+            });
         }
     </script>
 </body>
