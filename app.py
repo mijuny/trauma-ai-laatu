@@ -519,37 +519,44 @@ def classify_study():
     
     # Get AI classification
     ai_classification = study.ai_classification
-    
-    # Convert AI classification to POSITIVE/NEGATIVE if it's TP/TN
-    if ai_classification in ['TP', 'FP']:
-        ai_classification = 'POSITIVE'
-    elif ai_classification in ['TN', 'FN']:
-        ai_classification = 'NEGATIVE'
-    
+
+    # Convert AI classification to POSITIVE/NEGATIVE if it's TP/TN or DOUBT (for logic only)
+    logic_ai_classification = ai_classification
+    if logic_ai_classification in ['TP', 'FP']:
+        logic_ai_classification = 'POSITIVE'
+    elif logic_ai_classification in ['TN', 'FN']:
+        logic_ai_classification = 'NEGATIVE'
+    elif logic_ai_classification == 'DOUBT':
+        logic_ai_classification = 'POSITIVE'
+
     # Get the classification value
     classification_value = data['classification']
-    
+
     # Determine final classification based on classification type and rules
     if data['classification_type'] == 'FOLLOW_UP':
         # Follow-up classification rules
-        if classification_value == 'POSITIVE' and ai_classification == 'POSITIVE':
+        if classification_value == 'POSITIVE' and logic_ai_classification == 'POSITIVE':
             final_classification = 'TP'
-        elif classification_value == 'NEGATIVE' and ai_classification == 'NEGATIVE':
+        elif classification_value == 'NEGATIVE' and logic_ai_classification == 'NEGATIVE':
             final_classification = 'TN'
-        elif classification_value == 'POSITIVE' and ai_classification == 'NEGATIVE':
+        elif classification_value == 'POSITIVE' and logic_ai_classification == 'NEGATIVE':
             final_classification = 'FN'
-        elif classification_value == 'NEGATIVE' and ai_classification == 'POSITIVE':
+        elif classification_value == 'NEGATIVE' and logic_ai_classification == 'POSITIVE':
             final_classification = 'FP'
+        else:
+            return jsonify({'error': 'Invalid follow-up classification logic'}), 400
     else:  # USER classification
         # User classification rules
-        if classification_value == 'POSITIVE' and ai_classification == 'POSITIVE':
+        if classification_value == 'POSITIVE' and logic_ai_classification == 'POSITIVE':
             final_classification = 'TP'
-        elif classification_value == 'NEGATIVE' and ai_classification == 'NEGATIVE':
+        elif classification_value == 'NEGATIVE' and logic_ai_classification == 'NEGATIVE':
             final_classification = 'TN'
-        elif classification_value == 'NEGATIVE' and (ai_classification == 'POSITIVE' or ai_classification == 'DOUBT'):
+        elif classification_value == 'NEGATIVE' and (logic_ai_classification == 'POSITIVE' or logic_ai_classification == 'DOUBT'):
             final_classification = 'FP'
-        elif classification_value == 'POSITIVE' and ai_classification == 'NEGATIVE':
+        elif classification_value == 'POSITIVE' and logic_ai_classification == 'NEGATIVE':
             final_classification = 'FN'
+        else:
+            return jsonify({'error': 'Invalid user classification logic'}), 400
     
     # Check for existing classification by the same user for this study and type
     existing_classification = Classification.query.filter(

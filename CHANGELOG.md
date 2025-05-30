@@ -5,6 +5,11 @@ All notable changes to the Trauma AI Quality Control System will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2024-05-28
+### Changed
+- Removed automatic page refresh; added a "Päivitä" (Refresh) button next to "Tyhjennä suodattimet".
+- Fixed: AI result "DOUBT" (Epävarma) is now handled as POSITIVE in all classification logic and statistics, but still shown as "DOUBT" in the UI.
+
 ## [1.1.0] - 2024-05-28
 ### Added
 - Follow-up classification (Jatkotutkimus) support: cases can now be classified as POSITIVE or NEGATIVE by follow-up, with independent logic and override rules.

@@ -227,9 +227,12 @@
                     <button onclick="toggleNewUsername()" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 rounded">+</button>
                 </div>
             </div>
-            <div class="mt-4">
+            <div class="mt-4 flex gap-2">
                 <button onclick="resetFilters()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
                     {{ t('reset_filters') }}
+                </button>
+                <button onclick="window.location.reload()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600">
+                    Päivitä
                 </button>
             </div>
         </div>
@@ -421,39 +424,6 @@
                 window.focus();
             }
         }
-
-        // Auto-refresh functionality
-        let refreshInterval = 30000; // 30 seconds
-        let refreshTimer = null;
-
-        function startAutoRefresh() {
-            // Clear any existing timer
-            if (refreshTimer) {
-                clearInterval(refreshTimer);
-            }
-            // Start new timer
-            refreshTimer = setInterval(() => {
-                // Preserve current filters and page
-                const timeFilter = document.getElementById('timeFilter').value;
-                const studyType = document.getElementById('studyType').value;
-                const resultType = document.getElementById('resultType').value;
-                const username = getUsername();
-                const currentPage = new URLSearchParams(window.location.search).get('page') || 1;
-
-                const params = new URLSearchParams();
-                if (timeFilter && timeFilter !== 'all') params.append('time_filter', timeFilter);
-                if (studyType) params.append('study_type', studyType);
-                params.append('result_type', resultType);
-                if (username) params.append('username', username);
-                params.append('page', currentPage);
-
-                // Reload the page with current filters
-                window.location.href = '/?' + params.toString();
-            }, refreshInterval);
-        }
-
-        // Start auto-refresh when page loads
-        document.addEventListener('DOMContentLoaded', startAutoRefresh);
 
         function toggleTheme() {
             document.body.classList.toggle('dark');
