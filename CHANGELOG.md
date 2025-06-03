@@ -13,8 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Theme preference stored in browser localStorage and persists across page reloads and user interactions
 - Enhanced translation system with improved context processor functionality
   - Fixed language switching between Finnish and English
-  - Proper session-based language detection and application
-  - All UI elements now properly reflect the selected language
+  - Proper session-based language persistence across all user interactions
+  - Improved translation function architecture for better maintainability
+- Database migration tools for safe schema updates
+  - `migrate_db.py` - Basic migration script for development environments
+  - `migrate_db_production.py` - Production-safe migration with comprehensive safety features:
+    - Dry-run mode to preview changes before execution
+    - Backup creation capabilities
+    - Transactional operations with automatic rollback on errors
+    - Column and table existence checks to prevent conflicts
+    - Detailed logging and verification steps
+    - Support for adding new columns (classification_type, patient_id, patient_dob, patient_gender, study_uid)
+    - Comments table creation for study annotations
 
 ### Fixed
 - Language dropdown functionality - selecting English now properly changes the interface language

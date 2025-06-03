@@ -11,6 +11,27 @@ def migrate_database():
                 ADD COLUMN IF NOT EXISTS classification_type VARCHAR(10) NOT NULL DEFAULT 'USER'
             """))
             
+            # Add missing columns to studies table
+            db.session.execute(text("""
+                ALTER TABLE studies 
+                ADD COLUMN IF NOT EXISTS patient_id VARCHAR(50)
+            """))
+            
+            db.session.execute(text("""
+                ALTER TABLE studies 
+                ADD COLUMN IF NOT EXISTS patient_dob VARCHAR(10)
+            """))
+            
+            db.session.execute(text("""
+                ALTER TABLE studies 
+                ADD COLUMN IF NOT EXISTS patient_gender VARCHAR(1)
+            """))
+            
+            db.session.execute(text("""
+                ALTER TABLE studies 
+                ADD COLUMN IF NOT EXISTS study_uid VARCHAR(200)
+            """))
+            
             db.session.commit()
             print("Database migration completed successfully!")
         except Exception as e:
