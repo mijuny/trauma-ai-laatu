@@ -20,97 +20,288 @@
         }
     </script>
     <style>
+        /* Dark theme styles */
         .dark {
             background-color: #111827;
             color: #f3f4f6;
         }
+        
+        /* Background overrides */
         .dark .bg-white {
-            background-color: #1f2937;
-        }
-        .dark .text-gray-700 {
-            color: #f3f4f6;
-        }
-        .dark .border-gray-200 {
-            border-color: #374151;
-        }
-        .dark .bg-gray-50 {
-            background-color: #374151;
-        }
-        .dark .bg-gray-100 {
-            background-color: #1f2937;
-        }
-        .dark .bg-blue-100 {
-            background-color: #1e40af;
-            color: #ffffff;
-        }
-        .dark .bg-green-100 {
-            background-color: #065f46;
-            color: #ffffff;
-        }
-        .dark .bg-red-100 {
-            background-color: #991b1b;
-            color: #ffffff;
-        }
-        .dark .hover\:bg-gray-50:hover {
-            background-color: #374151;
-        }
-        .dark .hover\:bg-gray-300:hover {
-            background-color: #4b5563;
-        }
-        .dark .bg-blue-50 {
-            background-color: #1e40af;
-            color: #ffffff;
-        }
-        .dark .text-blue-600 {
-            color: #93c5fd;
-        }
-        .dark .text-gray-500 {
-            color: #d1d5db;
-        }
-        .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
-            border-color: #374151;
-        }
-        .dark .border-gray-300 {
-            border-color: #4b5563;
-        }
-        .dark .bg-gray-200 {
-            background-color: #374151;
-        }
-        .dark .bg-gray-700 {
-            background-color: #4b5563;
-        }
-        .dark .hover\:bg-gray-600:hover {
-            background-color: #6b7280;
-        }
-        /* Fix for table backgrounds */
-        .dark tbody.bg-white {
             background-color: #1f2937 !important;
         }
-        .dark thead.bg-gray-50 {
+        .dark .bg-gray-50 {
             background-color: #374151 !important;
         }
-        /* Fix for text colors in dark mode */
-        .dark .text-gray-900 {
-            color: #f3f4f6 !important;
+        .dark .bg-gray-100 {
+            background-color: #1f2937 !important;
         }
+        .dark .bg-gray-200 {
+            background-color: #374151 !important;
+        }
+        .dark .bg-gray-700 {
+            background-color: #4b5563 !important;
+        }
+        
+        /* Card backgrounds */
+        .dark .bg-blue-100 {
+            background-color: #1e40af !important;
+            color: #ffffff !important;
+        }
+        .dark .bg-green-100 {
+            background-color: #065f46 !important;
+            color: #ffffff !important;
+        }
+        .dark .bg-red-100 {
+            background-color: #991b1b !important;
+            color: #ffffff !important;
+        }
+        .dark .bg-blue-50 {
+            background-color: #1e40af !important;
+            color: #ffffff !important;
+        }
+        
+        /* Text color overrides */
         .dark .text-gray-700 {
             color: #e5e7eb !important;
         }
-        /* Fix for input and select backgrounds */
-        .dark input, .dark select {
+        .dark .text-gray-500 {
+            color: #d1d5db !important;
+        }
+        .dark .text-gray-400 {
+            color: #9ca3af !important;
+        }
+        .dark .text-gray-600 {
+            color: #d1d5db !important;
+        }
+        .dark .text-gray-800 {
+            color: #f3f4f6 !important;
+        }
+        .dark .text-gray-900 {
+            color: #f3f4f6 !important;
+        }
+        .dark .text-blue-600 {
+            color: #93c5fd !important;
+        }
+        
+        /* Border color overrides */
+        .dark .border-gray-200 {
+            border-color: #4b5563 !important;
+        }
+        .dark .border-gray-300 {
+            border-color: #4b5563 !important;
+        }
+        .dark .border {
+            border-color: #4b5563 !important;
+        }
+        
+        /* Divide color overrides */
+        .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+            border-color: #4b5563 !important;
+        }
+        
+        /* Form elements */
+        .dark input[type="text"],
+        .dark input[type="email"],
+        .dark input[type="password"],
+        .dark input[type="number"],
+        .dark textarea,
+        .dark select {
             background-color: #374151 !important;
             color: #f3f4f6 !important;
             border-color: #4b5563 !important;
         }
-        .dark input::placeholder {
+        
+        .dark input::placeholder,
+        .dark textarea::placeholder {
             color: #9ca3af !important;
         }
-        /* Fix for pagination */
-        .dark .bg-white.px-4 {
+        
+        /* Button hover states */
+        .dark .hover\:bg-gray-50:hover {
+            background-color: #374151 !important;
+        }
+        .dark .hover\:bg-gray-300:hover {
+            background-color: #4b5563 !important;
+        }
+        .dark .hover\:bg-gray-600:hover {
+            background-color: #6b7280 !important;
+        }
+        .dark .hover\:bg-gray-800:hover {
+            background-color: #374151 !important;
+        }
+        
+        /* Table specific styling */
+        .dark table {
             background-color: #1f2937 !important;
         }
-        .dark .text-gray-700 {
+        .dark th {
+            background-color: #374151 !important;
             color: #e5e7eb !important;
+        }
+        .dark td {
+            background-color: #1f2937 !important;
+            color: #e5e7eb !important;
+        }
+        .dark tbody tr:hover {
+            background-color: #374151 !important;
+        }
+        
+        /* Modal and overlay styling */
+        .dark .bg-black {
+            background-color: rgba(0, 0, 0, 0.8) !important;
+        }
+        .dark .bg-opacity-40 {
+            --tw-bg-opacity: 0.8 !important;
+        }
+        
+        /* Shadow adjustments for dark mode */
+        .dark .shadow,
+        .dark .shadow-lg {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        /* Remove white shadows and add dark borders for main sections */
+        .dark .rounded-lg.shadow {
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+            border: 1px solid #374151 !important;
+        }
+        
+        /* Ensure all shadows are dark in dark mode */
+        .dark .shadow {
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        /* Fix for main content containers */
+        .dark .bg-white.rounded-lg.shadow {
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.6), 0 1px 2px 0 rgba(0, 0, 0, 0.4) !important;
+            border: 1px solid #4b5563 !important;
+        }
+        
+        /* Specific fixes for comment sections */
+        .dark .border-gray-700 {
+            border-color: #4b5563 !important;
+        }
+        .dark .bg-gray-900 {
+            background-color: #111827 !important;
+        }
+        
+        /* Fix for pagination */
+        .dark .border-t {
+            border-color: #4b5563 !important;
+        }
+        
+        /* Ensure all rounded elements get proper dark styling */
+        .dark .rounded,
+        .dark .rounded-lg,
+        .dark .rounded-md {
+            border-color: #4b5563;
+        }
+        
+        /* Header button specific fixes */
+        .dark select {
+            border: 1px solid #4b5563 !important;
+        }
+        .dark button {
+            border: 1px solid #4b5563 !important;
+        }
+        
+        /* Override any default button/select borders in dark mode */
+        .dark select.rounded {
+            border-color: #4b5563 !important;
+        }
+        .dark button.rounded {
+            border-color: #4b5563 !important;
+        }
+        
+        /* More specific targeting for header elements */
+        .dark .space-x-4 select {
+            border: 1px solid #4b5563 !important;
+        }
+        .dark .space-x-4 button {
+            border: 1px solid #4b5563 !important;
+        }
+        
+        /* Force border styling for header controls */
+        body.dark select.bg-gray-200,
+        body.dark button.bg-gray-200 {
+            border: 1px solid #4b5563 !important;
+        }
+        
+        /* Force background color changes for header elements in dark mode */
+        .dark .space-x-4 select.bg-gray-200 {
+            background-color: #374151 !important;
+        }
+        .dark .space-x-4 button.bg-gray-200 {
+            background-color: #374151 !important;
+        }
+        
+        /* Alternative targeting for header buttons */
+        body.dark select.bg-gray-200 {
+            background-color: #374151 !important;
+        }
+        body.dark button.bg-gray-200 {
+            background-color: #374151 !important;
+        }
+        
+        /* Ultra-specific targeting for header buttons with maximum specificity */
+        .dark .space-x-4 > select[onchange*="set_language"] {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #f3f4f6 !important;
+        }
+        .dark .space-x-4 > button[onclick*="toggleTheme"] {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #f3f4f6 !important;
+        }
+        
+        /* Force override using attribute selectors */
+        body.dark select[class*="bg-gray-200"] {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #f3f4f6 !important;
+        }
+        body.dark button[class*="bg-gray-200"] {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #f3f4f6 !important;
+        }
+        
+        /* Force main content sections to have dark backgrounds */
+        body.dark .bg-white {
+            background-color: #1f2937 !important;
+        }
+        body.dark div.bg-white {
+            background-color: #1f2937 !important;
+        }
+        body.dark .bg-white.rounded-lg {
+            background-color: #1f2937 !important;
+        }
+        
+        /* Ultra-specific targeting for stubborn white backgrounds */
+        .dark div[class*="bg-white"] {
+            background-color: #1f2937 !important;
+        }
+        
+        /* Fix overall page background */
+        body.dark {
+            background-color: #111827 !important;
+        }
+        
+        /* Force container backgrounds to be dark */
+        .dark .container {
+            background-color: #111827 !important;
+        }
+        
+        /* Override any remaining light backgrounds */
+        .dark .bg-gray-100 {
+            background-color: #111827 !important;
+        }
+        
+        /* Ensure the main page wrapper is dark */
+        body.dark .bg-gray-100 {
+            background-color: #111827 !important;
         }
     </style>
 </head>
@@ -427,7 +618,24 @@
 
         function toggleTheme() {
             document.body.classList.toggle('dark');
+            // Save the current theme preference to localStorage
+            const isDark = document.body.classList.contains('dark');
+            localStorage.setItem('darkMode', isDark ? 'true' : 'false');
         }
+
+        // Load saved theme preference on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user has a saved theme preference
+            const savedTheme = localStorage.getItem('darkMode');
+            if (savedTheme === 'true') {
+                document.body.classList.add('dark');
+            }
+            
+            // Load latest comments for all studies
+            {% for study in studies.items %}
+            loadLatestComment({{ study.id }});
+            {% endfor %}
+        });
 
         function toggleNewUsername() {
             const usernameSelect = document.getElementById('username');

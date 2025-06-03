@@ -47,7 +47,12 @@ def get_translation(key, lang='fi'):
 def inject_translations():
     """Inject translations into all templates."""
     lang = session.get('lang', 'fi')
-    return dict(t=get_translation, lang=lang, min=min, max=max, convert_to_finnish_time=convert_to_finnish_time)
+    
+    # Create a translation function that uses the session language
+    def t(key):
+        return get_translation(key, lang)
+    
+    return dict(t=t, lang=lang, min=min, max=max, convert_to_finnish_time=convert_to_finnish_time)
 
 @app.route('/set_language/<lang>')
 def set_language(lang):
@@ -797,6 +802,12 @@ def get_comments():
     study_id = request.args.get('study_id')
     if not study_id:
         return jsonify({'error': 'Missing study_id'}), 400
+    
+    try:
+        study_id = int(study_id)  # Convert string to integer
+    except ValueError:
+        return jsonify({'error': 'Invalid study_id format'}), 400
+    
     comments = Comment.query.filter_by(study_id=study_id).order_by(Comment.created_at.desc()).all()
     return jsonify([
         {
@@ -814,13 +825,19 @@ def add_comment():
     data = request.json
     if not all(k in data for k in ['study_id', 'username', 'text']):
         return jsonify({'error': 'Missing required fields'}), 400
+    
+    try:
+        study_id = int(data['study_id'])  # Convert string to integer
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid study_id format'}), 400
+    
     user = User.query.filter(db.func.lower(User.username) == db.func.lower(data['username'])).first()
     if not user:
         user = User(username=data['username'])
         db.session.add(user)
         db.session.flush()
     comment = Comment(
-        study_id=data['study_id'],
+        study_id=study_id,
         user_id=user.id,
         text=data['text']
     )
