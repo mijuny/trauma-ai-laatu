@@ -5,6 +5,29 @@ All notable changes to the Trauma AI Quality Control System will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2024-06-03
+### Added
+- Comprehensive dark mode implementation with persistent user preference
+  - Dark theme for all UI components including headers, content sections, forms, and tables
+  - Professional dark color scheme with proper contrast ratios
+  - Theme preference stored in browser localStorage and persists across page reloads and user interactions
+- Enhanced translation system with improved context processor functionality
+  - Fixed language switching between Finnish and English
+  - Proper session-based language detection and application
+  - All UI elements now properly reflect the selected language
+
+### Fixed
+- Language dropdown functionality - selecting English now properly changes the interface language
+- Dark mode persistence - theme selection now maintained across page refreshes, form submissions, and navigation
+- Header button styling in dark mode (language selector and theme toggle)
+- Content section backgrounds and borders for consistent dark theme appearance
+- CSS specificity issues causing inconsistent theme application
+
+### Changed
+- Improved theme toggle implementation with localStorage integration
+- Enhanced CSS architecture for better dark mode support
+- More robust translation function that automatically uses session language
+
 ## [1.1.1] - 2024-05-30
 ### Changed
 - Removed automatic page refresh; added a "Päivitä" (Refresh) button next to "Tyhjennä suodattimet".
