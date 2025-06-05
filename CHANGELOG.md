@@ -5,6 +5,13 @@ All notable changes to the Trauma AI Quality Control System will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2024-06-05
+### Changed
+- Renamed main application file from `app.py` to `pekka2000.py` for improved process identification.
+- Updated all internal references and imports to use the new filename.
+- Added `manage_pekka.sh` script for starting, stopping, restarting, and checking the status of the application process.
+- Minor: Old process stopped and new process management workflow established.
+
 ## [1.2.0] - 2024-06-03
 ### Added
 - Comprehensive dark mode implementation with persistent user preference

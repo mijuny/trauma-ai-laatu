@@ -4,7 +4,7 @@ import threading
 import os
 from datetime import datetime
 from hl7 import parse
-from app import app, db, Study, parse_hl7_message
+from pekka2000 import app, db, Study, parse_hl7_message
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
