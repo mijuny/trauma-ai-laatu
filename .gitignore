@@ -48,3 +48,4 @@ htmlcov/
 # Misc
 *.bac
 accession_counter.txt
+*tar.gz
