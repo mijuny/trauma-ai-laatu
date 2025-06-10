@@ -1,15 +1,45 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
-*.pyc
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Virtual environment
+# Virtual Environment
 venv/
+venv312/
 ENV/
-.env
-.venv
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+.coverage
+htmlcov/
+
+# Misc
+*.bac
+accession_counter.txt
+cookies.txt
+*tar.gz
 
 # Database
 *.sqlite3
@@ -44,8 +74,3 @@ Thumbs.db
 htmlcov/
 .coverage
 .tox/
-
-# Misc
-*.bac
-accession_counter.txt
-*tar.gz
